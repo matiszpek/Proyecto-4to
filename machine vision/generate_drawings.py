@@ -59,16 +59,23 @@ def generate_measurement_lines(num_lines, max_x, max_y, drawing_lines):
         start_point = (random_line.start[0]+np.sin(random_line.nomral_rad())*25, random_line.start[1]+np.cos(random_line.nomral_rad())*25)
         end_point = (random_line.end[0]+np.sin(random_line.nomral_rad())*25, random_line.end[1]+np.cos(random_line.nomral_rad())*25)
         lines.append(Line(start_point, end_point, 'measurement', random_line.nomral_rad()))
+        start_point = (random_line.start[0]+np.sin(random_line.nomral_rad())*10, random_line.start[1]+np.cos(random_line.nomral_rad())*10)
+        end_point = (random_line.start[0]+np.sin(random_line.nomral_rad())*50, random_line.start[1]+np.cos(random_line.nomral_rad())*50)
+        lines.append(Line(start_point, end_point, 'finish', random_line.nomral_rad()+PI/2))
+        start_point = (random_line.end[0]+np.sin(random_line.nomral_rad())*10, random_line.end[1]+np.cos(random_line.nomral_rad())*10)
+        end_point = (random_line.end[0]+np.sin(random_line.nomral_rad())*50, random_line.end[1]+np.cos(random_line.nomral_rad())*50)
+        lines.append(Line(start_point, end_point, 'finish', random_line.nomral_rad()+PI/2))
     return lines
 
 def draw_line(draw, line, color):
     draw.line([line.start, line.end], fill=color, width=2)
 
-def draw_measurement(draw, line, color):
+def draw_measurement(draw, line: Line, color):
     draw_line(draw, line, color)
     midpoint = ((line.start[0] + line.end[0]) // 2, (line.start[1] + line.end[1]) // 2)
     measurement = round(((line.end[0] - line.start[0])**2 + (line.end[1] - line.start[1])**2)**0.5, 2)
-    draw.text((midpoint[0]+np.sin(line.nomral_rad())*25, midpoint[1]+np.cos(line.nomral_rad())*25), str(measurement), fill=color)
+    if line.line_type == "measurement":
+        draw.text((midpoint[0]+np.sin(line.nomral_rad())*25, midpoint[1]+np.cos(line.nomral_rad())*25), str(measurement), fill=color)
 
 def generate_technical_drawing(width, height, num_drawing_lines, num_measurement_lines):
     image = Image.new('RGB', (width, height), color='white')

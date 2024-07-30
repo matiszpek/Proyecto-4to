@@ -1,7 +1,6 @@
 import cv2 as cv
 import numpy as np
 import math
-import keras_ocr
 import matplotlib.pyplot as plt
 
 def apply_thresholds(gray, thresholds, adaptiveSettings):
@@ -13,7 +12,7 @@ def apply_thresholds(gray, thresholds, adaptiveSettings):
 
 
 def apply_canny(mask):
-    return cv.Canny(mask, 100, 125, apertureSize=7, L2gradient=True)
+    return cv.Canny(mask, 110, 125, apertureSize=7, L2gradient=True)
 
 
 def get_lines(can):
@@ -23,7 +22,7 @@ def get_lines(can):
         np.pi/90,
         20,
         minLineLength=8,
-        maxLineGap=10
+        maxLineGap=5
     )
 
 def draw_line(img_lines, line):
@@ -44,36 +43,27 @@ def calculate_slope_and_intercept(x1, y1, x2, y2):
     b = y1 - slope * x1
     return slope, b
 
-pipeline = keras_ocr.pipeline.Pipeline()
-
-img = cv.imread("technical_drawing_sample0.png")
+img = cv.imread("machine vision/technical_drawing_sample0.png")
 gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 thr = apply_canny(gray)
 lines = get_lines(thr)
 lines_ = []
 
-prediction_groups = pipeline.recognize(img)
-fig, axs = plt.subplots(nrows=len(images), figsize=(10, 20))
-for ax, image, predictions in zip(axs, images, prediction_groups):
-    keras_ocr.tools.drawAnnotations(image=image, 
-                                    predictions=predictions, 
-                                    ax=ax)
 
 
 rect_kernel = cv.getStructuringElement(cv.MORPH_RECT, (18, 18))
 print()
 # Applying dilation on the threshold image
-dilation = cv.dilate(gray, rect_kernel, iterations = 1)
+dilation = cv.dilate(gray, rect_kernel, iterations = 20).astype(np.uint8)
 
 # Finding contours
-contours, hierarchy = cv.findContours(dilation, cv.RETR_FLOODFILL, cv.CHAIN_APPROX_NONE)
+contours, hierarchy = cv.findContours(dilation, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
 for cnt in contours:
     x, y, w, h = cv.boundingRect(cnt)
     
     # Drawing a rectangle on copied image
     rect = cv.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-    
 
 if lines is not None:
     for line in lines:

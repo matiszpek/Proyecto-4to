@@ -7,7 +7,7 @@ Utilizamos multiples procesos diferentes para hacer la conversion, primero utili
 
 ## integrantes
 
-- [@matiszpek]( https://github.com/matiszpek): - Matias Szpektor
+- [@matiszpek]( https://github.com/matiszpek): - Matias Ariel Szpektor
 - [@matimay]( https://github.com/matimay): - Matias Mayans Kohor
 - [@luxcas213]( https://github.com/luxcas213): - Lucas Garbate
 - [@porfi2089](https://github.com/porfi2089): - Manuel Rao
