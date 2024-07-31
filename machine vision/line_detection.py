@@ -18,11 +18,11 @@ def apply_canny(mask):
 def get_lines(can):
     return cv.HoughLinesP(
         can,
-        1,
-        np.pi/90,
-        20,
+        0.5,
+        np.pi/8,
+        10,
         minLineLength=5,
-        maxLineGap=3
+        maxLineGap=10
     )
 
 # image processing
@@ -34,8 +34,10 @@ dilation = cv.dilate(gray, rect_kernel, iterations = 1).astype(np.uint8)
 contours, hierarchy = cv.findContours(gray, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
 thr = apply_thresholds(dilation, (0, 255), (11, 2))
+thr = cv.GaussianBlur(thr, (3, 3), 2)
 canny = apply_canny(thr)
-lines = get_lines(canny)
+dilation = cv.dilate(thr, rect_kernel, iterations = 1).astype(np.uint8)
+lines = get_lines(dilation)
 lines_ = []
 
 # image vizualisation
@@ -50,11 +52,14 @@ if lines is not None:
         x1, y1, x2, y2 = line[0]
         lines_.append(mf.Line((x1, y1), (x2, y2), math.atan2(y2 - y1, x2 - x1)))
 
-mf.reduce_lines(1, lines_) # still needs work
-
+lines_, ignored = mf.reduce_lines(1, lines_, img, 200, 3) # still needs work
+  
 for line in lines_:
     pass
     mf.draw_line(img, line, " Line "+str(lines_.index(line)))
 
+
 cv.imshow("threshold", img)
+# cv.imshow("canny", canny)
+# cv.imshow("thr", thr)
 cv.waitKey(0)

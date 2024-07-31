@@ -1,6 +1,7 @@
 import numpy as np
 PI = np.pi
 import cv2 as cv
+from typing import Union, Optional, Tuple
 
 # Point functions
 def distance_between_points(p1: tuple[int, int], p2: tuple[int, int]) -> float:
@@ -35,18 +36,35 @@ def get_normal(p1: tuple[int, int], p2: tuple[int, int]) -> float:
 # Line functions
 class Line:
     """Line class"""
-    def __init__(self, start: tuple[int, int], end: tuple[int, int], line_type: str = None, normal: float = PI*1000):
-        self.start = start
-        self.end = end
-        self.midpoint = ((start[0] + end[0]) // 2, (start[1] + end[1]) // 2)
-        self.line_type = line_type  # 'drawing' or 'measurement'
-        if normal != PI*1000:
-            self.normal = normal
+    def __init__(self, 
+                 start_or_line: Union['Line', Tuple[int, int]], 
+                 end: Optional[Tuple[int, int]] = None, 
+                 line_type: Optional[str] = None, 
+                 normal: Optional[float] = None):
+        """create a line by pasing starting values or another line"""
+        if isinstance(start_or_line, Line):
+            # If a Line object is passed, copy its attributes
+            self.start = start_or_line.start
+            self.end = start_or_line.end
+            self.midpoint = start_or_line.midpoint
+            self.n_dist = start_or_line.n_dist
+            self.line_type = start_or_line.line_type
+            self.normal = start_or_line.normal
         else:
-            try:
-                self.normal = abs(self.end[1] - self.start[1])/abs(self.end[0] - self.start[0])
-            except ZeroDivisionError:
-                self.normal = np.pi
+            # If tuples for start and end points are passed
+            self.start = start_or_line
+            self.end = end
+            self.midpoint = ((self.start[0] + self.end[0]) // 2, (self.start[1] + self.end[1]) // 2)
+            self.n_dist = (self.end[0] - self.start[0], self.end[1] - self.start[1])
+            self.line_type = line_type  # 'drawing' or 'measurement'
+            
+            if normal is not None:
+                self.normal = normal
+            else:
+                try:
+                    self.normal = abs(self.end[1] - self.start[1]) / abs(self.end[0] - self.start[0])
+                except ZeroDivisionError:
+                    self.normal = PI  
 
     def nomral_rad(self) -> float:
         """returns normal of line in radians"""
@@ -78,6 +96,12 @@ class Line:
         """returns start, end, midpoint, line_type, normal"""
         return self.start, self.end, self.midpoint, self.line_type, self.normal
 
+    def lerp(self, n: float) -> tuple[int, int]:
+        """lerp function"""
+        x = self.start[0] + self.n_dist[0]*n
+        y = self.start[1] + self.n_dist[1]*n
+        return int(x), int(y)
+
 def distance_between_lines(line1: Line, line2: Line) -> float:
     """returns distance between two lines"""
     return distance_between_points(line1.midpoint, line2.midpoint)
@@ -91,8 +115,14 @@ def distance_between_lines_vectorized_normalized(line1: Line, line2: Line) -> tu
     rp1 = rotate_point(line2.midpoint, -line1.normal, line1.midpoint)
     return vectorized_distance_between_points(line1.midpoint, rp1)
 
-def reduce_lines(lineReductions: int, lines_: list[Line]): # WIP
-    """Reduces lines by removing similar lines"""
+def reduce_lines(lineReductions: int, lines_: list[Line], img_: cv.typing.MatLike, line_threshold: int, check_points: int = 2) -> tuple[list[Line], list[Line]]: # WIP
+    """
+    Reduces by removing similar lines
+    
+    returns passed lines and deleted lines
+    """
+    img = cv.cvtColor(img_, cv.COLOR_BGR2GRAY)
+    deleted_lines = []
     for i in range(lineReductions):
             for line in lines_:
                 p1, p2, mp, type, angle = line.get()
@@ -103,13 +133,21 @@ def reduce_lines(lineReductions: int, lines_: list[Line]): # WIP
                     p1_, p2_, mp_, type, angle_ = line_.get()
                     if PI/90 > abs(angle - angle_) >= 0:
                         if distance_between_lines_vectorized_normalized(line, line_)[0] < 10:
-                            # print("Removed: ", line_)
-                            # print("diff: ", abs(angle - angle_))
-                            lines_.remove(line_)
+                            ml = Line(mp, mp_)
+                            n = 0
+                            for i in range(check_points):
+                                p = ml.lerp(i/check_points)
+                                if img[p[1], p[0]] <= line_threshold:
+                                    n += 1
+                            if n >= check_points/2:
+                                lines_.remove(line_)
+                                print("removed line:", line_)
+                                deleted_lines.append(Line(line_))
                     else:
                         # print("Not Removed: ", line_)
                         # print("diff: ", abs(angle - angle_))
                         pass
+    return lines_, deleted_lines
 
 def draw_line(img_lines: cv.typing.MatLike, line: Line, text: str = None, color: tuple[int, int, int] = (0, 255, 0)):
     """Draws line on image"""
