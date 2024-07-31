@@ -7,8 +7,10 @@ class Line:
     def __init__(self, start, end, line_type, normal = None):
         self.start = start
         self.end = end
+        self.midpoint = ((start[0] + end[0]) // 2, (start[1] + end[1]) // 2)
         self.line_type = line_type  # 'drawing' or 'measurement'
         self.normal = normal
+
     def nomral_rad(self):
         if self.normal != None:
             return self.normal
@@ -19,6 +21,22 @@ class Line:
             except ZeroDivisionError:
                 print(self.end[1] - self.start[1], self.end[0] - self.start[0])
                 return np.pi/2
+    
+    def slope_and_intercept(self):
+        x1, y1 = self.start
+        x2, y2 = self.end
+        x = np.sort([x1, x2])
+        y = np.sort([y1, y2])
+        x1, x2 = x
+        y1, y2 = y
+        x2 = x2 if x1 != x2 else x2+0.5
+        slope = (y2 - y1) / (x2 - x1)
+        slope = slope if slope != 0 else 0.05
+        b = y1 - slope * x1
+        return slope, b
+
+def distance_between_points(p1, p2):
+    return ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
             
 
 def generate_random_point(max_x, max_y, min_x = 0, min_y = 0):
@@ -89,7 +107,6 @@ def generate_technical_drawing(width, height, num_drawing_lines, num_measurement
 
     for i, line in enumerate(measurement_lines):
         draw_measurement(draw, line, 'red')
-        draw.text(line.start, str(i + len(drawing_lines)), fill='green')
     
     return image, drawing_lines + measurement_lines
 
