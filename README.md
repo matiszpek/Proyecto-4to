@@ -1,4 +1,4 @@
-# Proyecto-4to
+# SketchVision
 ## introduccion
 Convierte multiples vistas ortograficas 2D de un objeto 3D a un modelo 3D.
 
