@@ -12,5 +12,4 @@ Utilizamos multiples procesos diferentes para hacer la conversion, primero utili
 - [@luxcas213]( https://github.com/luxcas213): - Lucas Garbate
 - [@porfi2089](https://github.com/porfi2089): - Manuel Rao
 
-# status
-## WIP
+# status: WIP
