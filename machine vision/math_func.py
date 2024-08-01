@@ -2,6 +2,7 @@ import numpy as np
 PI = np.pi
 import cv2 as cv
 from typing import Union, Optional, Tuple
+import math
 
 # Point functions
 def distance_between_points(p1: tuple[int, int], p2: tuple[int, int]) -> float:
@@ -111,6 +112,12 @@ class Line:
         C = A * x1 + B * y1
         return A, B, C
 
+    def swap_ends(self):
+        """Swap the start and end points of the line."""
+        self.start, self.end = self.end, self.start
+        self.midpoint = ((self.start[0] + self.end[0]) // 2, (self.start[1] + self.end[1]) // 2)
+        self.n_dist = (self.end[0] - self.start[0], self.end[1] - self.start[1])
+        self.normal = abs(self.end[1] - self.start[1]) / abs(self.end[0] - self.start[0]) if self.end[0] != self.start[0] else PI
 
 def distance_between_lines(line1: Line, line2: Line) -> float:
     """returns distance between two lines"""
@@ -255,4 +262,29 @@ def line_intersect(line1: Line, line2: Line, extend: Tuple[bool, bool] = (False,
     else:
         return infinite_line_intersection(line1, line2)
     
-def join_borders(line1: Line, line2: Line) -> Tuple[]
+
+def join_borders(line1: Line, line2: Line) -> Tuple[Line, Line]:
+    ip = line_intersect(line1, line2, (True, True))
+    points = (line1.start, line1.end, line2.start, line2.end)
+    dst = []
+    for i in range(2):
+        for n in range(2):
+            dst.append(distance_between_points(points[i-1], points[1+n]))
+    m = dst.index(dst.min())
+    if m == 0:
+        return Line(points[0], ip), Line(points[1], ip)
+    elif m == 1:
+        return Line(points[0], ip), Line(points[2], ip)
+    elif m == 2:
+        return Line(points[3], ip), Line(points[2], ip)
+    elif m == 3:
+        return Line(points[3], ip), Line(points[1], ip)
+    
+def is_point_close(line: Line, point: Tuple[int, int], threshold: float) -> bool:
+    """Check if a point is close to the line within a given threshold."""
+    x0, y0 = point
+    A, B, C = line.to_general_form()
+    
+    distance = abs(A * x0 + B * y0 - C) / math.sqrt(A**2 + B**2)
+    return distance <= threshold
+
