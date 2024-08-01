@@ -102,6 +102,16 @@ class Line:
         y = self.start[1] + self.n_dist[1]*n
         return int(x), int(y)
 
+    def to_general_form(self) -> Tuple[float, float, float]:
+        """Convert the line to its general form: Ax + By = C."""
+        x1, y1 = self.start
+        x2, y2 = self.end
+        A = y2 - y1
+        B = x1 - x2
+        C = A * x1 + B * y1
+        return A, B, C
+
+
 def distance_between_lines(line1: Line, line2: Line) -> float:
     """returns distance between two lines"""
     return distance_between_points(line1.midpoint, line2.midpoint)
@@ -170,3 +180,79 @@ def draw_line(img_lines: cv.typing.MatLike, line: Line, text: str = None, color:
     # cv.circle(img_lines, (x1, y1), 5, (255, 0, 0), -1)
     # cv.circle(img_lines, (x2, y2), 5, (255, 255, 0), -1)
 
+def check_point_in_box(p: tuple[int, int], box: tuple[tuple[int, int], tuple[int, int]]) -> bool:
+    """checks if point is in box"""
+    x, y = p
+    x1, y1 = box[0]
+    x2, y2 = box[1]
+    return x1 <= x <= x2 and y1 <= y <= y2
+
+def infinite_line_intersection(line1: Line, line2: Line) -> Optional[Tuple[float, float]]:
+    """Check if two infinite lines intersect, and find the intersection point if they do."""
+    A1, B1, C1 = line1.to_general_form()
+    A2, B2, C2 = line2.to_general_form()
+    
+    # Calculate the determinant
+    det = A1 * B2 - A2 * B1
+    
+    if det == 0:
+        # Lines are parallel (no intersection)
+        return None
+    
+    # Intersection point
+    x = (B2 * C1 - B1 * C2) / det
+    y = (A1 * C2 - A2 * C1) / det
+    
+    return x, y
+
+def segment_infinite_intersection(segment: Line, infinite_line: Line) -> Optional[Tuple[float, float]]:
+    """Check if a segment and an infinite line intersect, and find the intersection point if they do."""
+    A1, B1, C1 = segment.to_general_form()
+    A2, B2, C2 = infinite_line.to_general_form()
+    
+    # Calculate the determinant
+    det = A1 * B2 - A2 * B1
+    
+    if det == 0:
+        # Lines are parallel (no intersection)
+        return None
+    
+    # Intersection point
+    x = (B2 * C1 - B1 * C2) / det
+    y = (A1 * C2 - A2 * C1) / det
+    
+    # Check if the intersection point is within the segment's bounds
+    if min(segment.start[0], segment.end[0]) <= x <= max(segment.start[0], segment.end[0]) and \
+       min(segment.start[1], segment.end[1]) <= y <= max(segment.start[1], segment.end[1]):
+        return x, y
+    else:
+        return None
+
+def line_intersect(line1: Line, line2: Line, extend: Tuple[bool, bool] = (False, False)) -> Optional[tuple[float, float]]:
+    """returns intersection point between line1 adn line 2, or None if they don't intersect"""
+    if extend == (False, False):
+        xdiff = (line1.start[0] - line1.end[0], line2.start[0] - line2.end[0])
+        ydiff = (line1.start[1] - line1.end[1], line2.start[1] - line2.end[1])
+
+        def det(a, b):
+            return a[0] * b[1] - a[1] * b[0]
+
+        div = det(xdiff, ydiff)
+        if div == 0:
+            raise Exception('lines do not intersect')
+
+        d = (det(line1.start, line1.end), det(line2.start, line2.end))
+        x = det(d, xdiff) / div
+        y = det(d, ydiff) / div
+        return (x, y)
+    
+    elif extend[0] == False:
+        return segment_infinite_intersection(line1, line2)
+
+    elif extend[1] == False:
+        return segment_infinite_intersection(line2, line1)
+    
+    else:
+        return infinite_line_intersection(line1, line2)
+    
+def join_borders(line1: Line, line2: Line) -> Tuple[]
