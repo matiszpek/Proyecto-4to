@@ -106,7 +106,8 @@ def generate_technical_drawing(width, height, num_drawing_lines, num_measurement
         draw_line(draw, line, 'black')
 
     for i, line in enumerate(measurement_lines):
-        draw_measurement(draw, line, 'red')
+        pass
+        # draw_measurement(draw, line, 'red')
     
     return image, drawing_lines + measurement_lines
 

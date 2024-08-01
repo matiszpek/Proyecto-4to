@@ -30,36 +30,33 @@ img = cv.imread("machine vision/technical_drawing_sample0.png")
 gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
 rect_kernel = cv.getStructuringElement(cv.MORPH_RECT, (1, 1))
-dilation = cv.dilate(gray, rect_kernel, iterations = 1).astype(np.uint8)
-contours, hierarchy = cv.findContours(gray, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
-thr = apply_thresholds(dilation, (0, 255), (11, 2))
-thr = cv.GaussianBlur(thr, (3, 3), 2)
+blured = cv.GaussianBlur(gray, (3, 3), 2)
+thr = apply_thresholds(blured, (0, 255), (11, 2))
 canny = apply_canny(thr)
-dilation = cv.dilate(thr, rect_kernel, iterations = 1).astype(np.uint8)
-lines = get_lines(dilation)
-lines_ = []
+cv.floodFill(canny,None,(0,0),255)
+cv.floodFill(canny,None,(0,0),0)
+# dilation = cv.dilate(canny, rect_kernel, iterations = 1).astype(np.uint8)
+lines = get_lines(canny)
+lines_ = [] 
 
 # image vizualisation
-for cnt in contours:
-    x, y, w, h = cv.boundingRect(cnt)
-    
-    # Drawing a rectangle on copied image
-    rect = cv.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 3)
-
 if lines is not None:
     for line in lines:
         x1, y1, x2, y2 = line[0]
         lines_.append(mf.Line((x1, y1), (x2, y2), math.atan2(y2 - y1, x2 - x1)))
 
-lines_, ignored = mf.reduce_lines(1, lines_, img, 200, 3) # still needs work
-  
+mf.correct_angles(lines_)
+lines_, ignored = mf.reduce_lines(3, lines_, blured, 200 , 10) 
+
+new_img = np.zeros((600,800,3), dtype=np.uint8)
+
 for line in lines_:
     pass
-    mf.draw_line(img, line, " Line "+str(lines_.index(line)))
+    mf.draw_line(new_img, line, " Line "+str(lines_.index(line)))
 
 
-cv.imshow("threshold", img)
-# cv.imshow("canny", canny)
-# cv.imshow("thr", thr)
+cv.imshow("threshold", new_img)
+cv.imshow("canny", thr)
+cv.imshow("thr", canny)
 cv.waitKey(0)

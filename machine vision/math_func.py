@@ -115,13 +115,24 @@ def distance_between_lines_vectorized_normalized(line1: Line, line2: Line) -> tu
     rp1 = rotate_point(line2.midpoint, -line1.normal, line1.midpoint)
     return vectorized_distance_between_points(line1.midpoint, rp1)
 
+def correct_angles(lines_: list[Line]):
+    for line in lines_:
+        angle = line.normal
+        if angle > PI/2:
+            angle = -PI + angle
+            line.normal = angle
+        elif angle < -PI/2:
+            angle = PI + angle
+            line.normal = angle
+
 def reduce_lines(lineReductions: int, lines_: list[Line], img_: cv.typing.MatLike, line_threshold: int, check_points: int = 2) -> tuple[list[Line], list[Line]]: # WIP
     """
     Reduces by removing similar lines
     
     returns passed lines and deleted lines
     """
-    img = cv.cvtColor(img_, cv.COLOR_BGR2GRAY)
+    
+    # img = cv.cvtColor(img_, cv.COLOR_BGR2GRAY)
     deleted_lines = []
     for i in range(lineReductions):
             for line in lines_:
@@ -137,7 +148,7 @@ def reduce_lines(lineReductions: int, lines_: list[Line], img_: cv.typing.MatLik
                             n = 0
                             for i in range(check_points):
                                 p = ml.lerp(i/check_points)
-                                if img[p[1], p[0]] <= line_threshold:
+                                if img_[p[1], p[0]] <= line_threshold:
                                     n += 1
                             if n >= check_points/2:
                                 lines_.remove(line_)
