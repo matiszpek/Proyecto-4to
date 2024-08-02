@@ -280,7 +280,7 @@ def join_borders(line1: Line, line2: Line) -> Tuple[Line, Line]:
     elif m == 3:
         return Line(points[3], ip), Line(points[1], ip)
     
-def is_point_close(line: Line, point: Tuple[int, int], threshold: float) -> bool:
+def is_point_close_line(line: Line, point: Tuple[int, int], threshold: float) -> bool:
     """Check if a point is close to the line within a given threshold."""
     x0, y0 = point
     A, B, C = line.to_general_form()
@@ -288,3 +288,38 @@ def is_point_close(line: Line, point: Tuple[int, int], threshold: float) -> bool
     distance = abs(A * x0 + B * y0 - C) / math.sqrt(A**2 + B**2)
     return distance <= threshold
 
+# i need an adaptative version of that
+def check_closest_points(p1: tuple[float, float], p_list: list[tuple[float, float]], points_returned: int) -> tuple[list[float], list[tuple[float, float]], list[int]]:
+    """returns the distances to the closest points, their positions and their original IDs in the passed list"""
+
+    dst = []
+    p_ranked = p_list
+    ID = np.arange(p_list.__len__)
+
+    for p in p_list:
+        dst.append(distance_between_points(p1, p))
+    
+    sorted_indices = np.argsort(dst)
+    dst = dst[sorted_indices]
+    p_ranked = p_ranked[sorted_indices]
+    ID = ID[sorted_indices]
+
+    return (dst[:points_returned], p_ranked[:points_returned], ID[:points_returned])
+
+def lines_to_point_connections(lines: list[Line]) -> list[tuple[float, float]], list[tuple[int, int]]]:
+    points = []
+    for i, line in enumerate(lines):
+        points.append(line.start)
+        points.append(line.end)
+    
+    return (points)
+
+def manage_opens(lines: list[Line], img: cv.typing.MatLike) -> tuple[list[Line], list[tuple[tuple[int, bool], tuple[int, bool]]]]:
+    """connects all unconected lines and returns a new set with all of them conected and with the IDs of all the conected lines"""
+    points, connections = lines_to_point_connections(lines)
+
+    for p in points:
+
+
+        
+    
