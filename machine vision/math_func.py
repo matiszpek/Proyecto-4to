@@ -306,7 +306,7 @@ def check_closest_points(p1: tuple[float, float], p_list: list[tuple[float, floa
 
     return (dst[:points_returned], p_ranked[:points_returned], ID[:points_returned])
 
-def lines_to_point_connections(lines: list[Line]) -> list[tuple[float, float]], list[tuple[int, int]]]:
+def lines_to_point_connections(lines: list[Line]) -> tuple[list[tuple[float, float]], list[tuple[int, int]]]:
     points = []
     for i, line in enumerate(lines):
         points.append(line.start)
@@ -319,7 +319,7 @@ def manage_opens(lines: list[Line], img: cv.typing.MatLike) -> tuple[list[Line],
     points, connections = lines_to_point_connections(lines)
 
     for p in points:
-
+        pass
 
         
     
