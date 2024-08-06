@@ -352,4 +352,16 @@ def get_lines(can):
         maxLineGap=10
     )
         
-    
+def get_avrg_ligth(contour: list, img: cv.typing.MatLike) -> float:
+    mask = np.zeros(img.shape[:2], dtype=np.uint8)
+    cv.drawContours(mask, [contour], 0, (255), -1)
+
+    masked_image = cv.bitwise_and(img, img, mask=mask)
+
+    non_zero_pixels = masked_image[np.nonzero(masked_image)]
+    if len(non_zero_pixels) > 0:
+        average = np.mean(non_zero_pixels)
+    else:
+        average = 0
+    return average
+
