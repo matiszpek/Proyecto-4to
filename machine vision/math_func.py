@@ -314,6 +314,27 @@ def lines_to_point_connections(lines: list[Line]) -> tuple[list[tuple[float, flo
     
     return (points)
 
+def shift_array(_list: list[any], times: int = 1) -> list[any]:
+    
+    op_list = _list
+    if times > 0:
+        for i in range(times):
+            n_list = []
+            n_list.append(op_list[len(op_list)-1])
+            for _ in op_list[:(len(op_list)-1)]:
+                n_list.append(_)
+            op_list = n_list
+            
+    elif times < 0:
+        for i in range(-times):
+            n_list = []
+            n_list = op_list[1:]
+            n_list.append(op_list[0])
+            op_list = n_list
+    else:
+        return _list
+    return n_list
+
 def manage_opens(lines: list[Line], img: cv.typing.MatLike) -> tuple[list[Line], list[tuple[tuple[int, bool], tuple[int, bool]]]]:
     """connects all unconected lines and returns a new set with all of them conected and with the IDs of all the conected lines"""
     points, connections = lines_to_point_connections(lines)
