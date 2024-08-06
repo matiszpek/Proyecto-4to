@@ -342,5 +342,14 @@ def manage_opens(lines: list[Line], img: cv.typing.MatLike) -> tuple[list[Line],
     for p in points:
         pass
 
+def get_lines(can):
+    return cv.HoughLinesP(
+        can,
+        0.5,
+        np.pi/8,
+        10,
+        minLineLength=5,
+        maxLineGap=10
+    )
         
     

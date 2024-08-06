@@ -15,16 +15,6 @@ def apply_thresholds(gray, thresholds, adaptiveSettings):
 def apply_canny(mask):
     return cv.Canny(mask, 110, 125, apertureSize=7, L2gradient=True)
 
-def get_lines(can):
-    return cv.HoughLinesP(
-        can,
-        0.5,
-        np.pi/8,
-        10,
-        minLineLength=5,
-        maxLineGap=10
-    )
-
 # image processing
 img = cv.imread("machine vision/technical_drawing_sample0.png")
 gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
@@ -37,7 +27,7 @@ canny = apply_canny(thr)
 cv.floodFill(canny,None,(0,0),255)
 cv.floodFill(canny,None,(0,0),0)
 # dilation = cv.dilate(canny, rect_kernel, iterations = 1).astype(np.uint8)
-lines = get_lines(canny)
+lines = mf.get_lines(canny)
 lines_ = [] 
 
 # image vizualisation
