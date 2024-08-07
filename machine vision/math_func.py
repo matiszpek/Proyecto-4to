@@ -365,3 +365,12 @@ def get_avrg_ligth(contour: list, img: cv.typing.MatLike) -> float:
         average = 0
     return average
 
+def rotate_image(image: cv.typing.MatLike, angle: float) -> cv.typing.MatLike:
+    """Rotate an image by a given angle."""
+    center = tuple(np.array(image.shape[1::-1]) / 2)
+    rot_mat = cv.getRotationMatrix2D(center, angle, 1.0)
+    result = cv.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv.INTER_LINEAR)
+    return result
+
+# def rotate_contour_array(contour: np.ndarray, angle: int) -> np.ndarray:
+    

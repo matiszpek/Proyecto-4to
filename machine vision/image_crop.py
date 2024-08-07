@@ -4,7 +4,7 @@ import imutils
 import math_func as mf
 import math
 
-def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640, 480)) -> cv.typing.MatLike:
+def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640, 480), inverted: bool = False) -> cv.typing.MatLike:
     """crops in to just the main page"""
     img = cv.resize(img, pros_res)
     gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
@@ -47,7 +47,8 @@ def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640
 
     pts1 = [(screenCnt[3][0][0], screenCnt[3][0][1]), (screenCnt[2][0][0], screenCnt[2][0][1]), (screenCnt[0][0][0], screenCnt[0][0][1]), (screenCnt[1][0][0], screenCnt[1][0][1])]
     pts2 = [[0, 0], [640, 0], [0, 480], [640, 480]]
-    pts2 = mf.shift_array(pts2, 0) # rotate
+    if inverted:
+        pts2 = mf.shift_array(pts2, 2) # rotate
     
     matrix = cv.getPerspectiveTransform(np.float32(pts1), np.float32(pts2))
     result = cv.warpPerspective(img, matrix, (640, 480))
@@ -55,8 +56,10 @@ def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640
     return result
 
 def detect_drawing(img: cv.typing.MatLike) -> tuple[list[cv.typing.MatLike], cv.typing.MatLike]:
+    """detects the drawings in the image, returns each drawing and the presence map"""
+
     gray = cv.cvtColor(img.copy(), cv.COLOR_BGR2GRAY)
-    _img = cv.convertScaleAbs(gray, None, 1.5, -50)
+    _img = cv.convertScaleAbs(gray, None, 1.6, -50)
     blured = cv.GaussianBlur(_img, (9, 9), 0) 
     _img = cv.adaptiveThreshold(blured, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 15, 2)
     _img = cv.GaussianBlur(_img, (25, 25), 4) 
@@ -69,7 +72,7 @@ def detect_drawing(img: cv.typing.MatLike) -> tuple[list[cv.typing.MatLike], cv.
     precence_map = cv.normalize(precence_map, None, 0, 255, cv.NORM_MINMAX)
     precence_map = cv.GaussianBlur(precence_map, (25, 25), 0)
     precence_map = cv.inRange(precence_map, int(precence_map.max())*0.4, 255)
-    precence_map = cv.dilate(precence_map, cv.getStructuringElement(cv.MORPH_RECT, (11, 11)), iterations=2)
+    precence_map = cv.dilate(precence_map, cv.getStructuringElement(cv.MORPH_RECT, (15, 15)), iterations=2)
 
     contours = cv.findContours(precence_map, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
     contours = imutils.grab_contours(contours)
@@ -93,9 +96,9 @@ def detect_drawing(img: cv.typing.MatLike) -> tuple[list[cv.typing.MatLike], cv.
 
     return new_imgs, precence_map
 
-
+# test section
 if __name__ == "__main__":
-    filename = "machine vision/20240802_080607.jpg"
+    filename = "machine vision/20240802_080556.jpg"
     img = cv.imread(filename)
     result = detect_drawing_page(img)
     precence = detect_drawing(result)[1]
