@@ -54,19 +54,57 @@ def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640
 
     return result
 
-def detect_drawing(img: cv.typing.MatLike) -> list[cv.typing.MatLike]:
-    detector = cv.SimpleBlobDetector()
-    keypoints = detector.detect(img)
-    _img = cv.drawKeypoints(img, keypoints, np.array([]), (0,0,255), cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    return [_img]
+def detect_drawing(img: cv.typing.MatLike) -> tuple[list[cv.typing.MatLike], cv.typing.MatLike]:
+    gray = cv.cvtColor(img.copy(), cv.COLOR_BGR2GRAY)
+    _img = cv.convertScaleAbs(gray, None, 1.5, -50)
+    blured = cv.GaussianBlur(_img, (9, 9), 0) 
+    _img = cv.adaptiveThreshold(blured, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 15, 2)
+    _img = cv.GaussianBlur(_img, (25, 25), 4) 
+    _img = cv.adaptiveThreshold(blured, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2)
+    _img = cv.bitwise_not(_img)
+    precence_map = np.zeros(_img.shape, dtype=np.float64)
+    for i in range(0, _img.shape[0], 2):
+        for j in range(0, _img.shape[1], 2):
+            precence_map[i-10:i+10, j-10:j+10] += _img[i, j]/255
+    precence_map = cv.normalize(precence_map, None, 0, 255, cv.NORM_MINMAX)
+    precence_map = cv.GaussianBlur(precence_map, (25, 25), 0)
+    precence_map = cv.inRange(precence_map, int(precence_map.max())*0.4, 255)
+    precence_map = cv.dilate(precence_map, cv.getStructuringElement(cv.MORPH_RECT, (11, 11)), iterations=2)
+
+    contours = cv.findContours(precence_map, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
+    contours = imutils.grab_contours(contours)
+    contours = sorted(contours, key = cv.contourArea, reverse = True)[:5]
+
+    new_imgs = []
+
+    #draw contours
+    for i, c in enumerate(contours):
+        peri = cv.arcLength(c, True)
+        approx = cv.approxPolyDP(c, 0.02 * peri, True)
+        x, y, w, h = cv.boundingRect(approx)
+        new_imgs.append(img[y:y+h, x:x+w])
+    
+    blured = cv.Canny(_img, 100, 200, apertureSize=3, L2gradient=True)
+    lines = cv.HoughLinesP(blured, 4, np.pi/180, 100, minLineLength=20, maxLineGap=2)
+    if lines is not None:
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            cv.line(precence_map, (x1, y1), (x2, y2), 255, 1)
+
+    return new_imgs, precence_map
 
 
 if __name__ == "__main__":
-    filename = "machine vision/20240802_080556.jpg"
+    filename = "machine vision/20240802_080607.jpg"
     img = cv.imread(filename)
     result = detect_drawing_page(img)
-    result = detect_drawing(result)[0]
+    precence = detect_drawing(result)[1]
+    results = detect_drawing(result)[0]
+
     cv.imshow('result', result)
+    for i in range(len(results)):
+        cv.imshow(f'result {i}', results[i])
+    cv.imshow('presence', precence)
     if cv.waitKey(0) & 0xff == 27:
         cv.destroyAllWindows()
 
