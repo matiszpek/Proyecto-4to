@@ -372,5 +372,7 @@ def rotate_image(image: cv.typing.MatLike, angle: float) -> cv.typing.MatLike:
     result = cv.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv.INTER_LINEAR)
     return result
 
-# def rotate_contour_array(contour: np.ndarray, angle: int) -> np.ndarray:
-    
+def transform_cordinate_frame(cord: tuple[float, float], frame1: tuple[int, int], frame2: tuple[int, int]) -> tuple[int, int]:
+    t_m = (frame1[0] / frame2[0], frame1[1] / frame2[1])
+    return int(cord[0]*t_m[0]), int(cord[1]*t_m[1])
+

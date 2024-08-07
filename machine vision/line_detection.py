@@ -3,6 +3,15 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import math_func as mf
+import image_crop as ic
+from skimage.morphology import skeletonize
+
+def skeletonize_image(input_image):
+
+    _, binary_image = cv.threshold(input_image, 127, 255, cv.THRESH_BINARY_INV)
+    binary_image = cv.bitwise_not(binary_image)
+    skeleton = skeletonize(binary_image // 255) * 255
+    return skeleton.astype(np.uint8)
 
 # image transform functions
 def apply_thresholds(gray, thresholds, adaptiveSettings):
@@ -16,22 +25,25 @@ def apply_canny(mask):
     return cv.Canny(mask, 110, 125, apertureSize=7, L2gradient=True)
 
 # image processing
-img = cv.imread("machine vision/technical_drawing_sample0.png")
-gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+filename = "machine vision/20240802_080510.jpg"
 
-rect_kernel = cv.getStructuringElement(cv.MORPH_RECT, (1, 1))
+img = cv.imread(filename)
+result = ic.detect_drawing_page(img)
+precence = ic.detect_drawing(result)[1]
+img = ic.detect_drawing(result)[0][0]
 
-blured = cv.GaussianBlur(gray, (3, 3), 2)
-thr = apply_thresholds(blured, (0, 255), (11, 2))
-canny = apply_canny(thr)
-cv.floodFill(canny,None,(0,0),255)
-cv.floodFill(canny,None,(0,0),0)
+# gray = skeletonize_image(img)
+# blured = cv.GaussianBlur(gray, (3, 3), 2)
+# thr = apply_thresholds(blured, (0, 255), (11, 2))
+# canny = apply_canny(thr)
+# cv.floodFill(canny,None,(0,0),255)
+# cv.floodFill(canny,None,(0,0),0)
 # dilation = cv.dilate(canny, rect_kernel, iterations = 1).astype(np.uint8)
-lines = mf.get_lines(canny)
-lines_ = [] 
+# lines = mf.get_lines(canny)
+# lines_ = [] 
 
 # image vizualisation
-if lines is not None:
+"""if lines is not None:
     for line in lines:
         x1, y1, x2, y2 = line[0]
         lines_.append(mf.Line((x1, y1), (x2, y2), math.atan2(y2 - y1, x2 - x1)))
@@ -44,9 +56,9 @@ new_img = np.zeros((600,800,3), dtype=np.uint8)
 for line in lines_:
     pass
     mf.draw_line(new_img, line, " Line "+str(lines_.index(line)))
+"""
 
-
-cv.imshow("threshold", new_img)
-cv.imshow("canny", thr)
-cv.imshow("thr", canny)
+cv.imshow("threshold", img)
+# cv.imshow("canny", thr)
+# cv.imshow("thr", canny)
 cv.waitKey(0)

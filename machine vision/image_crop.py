@@ -3,11 +3,12 @@ import cv2 as cv
 import imutils
 import math_func as mf
 import math
+from typing import Union, Optional, Tuple
 
-def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640, 480), inverted: bool = False) -> cv.typing.MatLike:
+def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640, 480), inverted: bool = False, res: tuple[int, int] = (1080, 720)) -> Tuple[cv.typing.MatLike, cv.typing.MatLike]:
     """crops in to just the main page"""
-    img = cv.resize(img, pros_res)
-    gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
+    _img = cv.resize(img, pros_res)
+    gray = cv.cvtColor(_img,cv.COLOR_BGR2GRAY)
     gray = cv.convertScaleAbs(gray, None, 1.2, -10)
     gray = cv.GaussianBlur(gray, (9, 9), 0)
     gray = cv.Canny(gray, 150, 200, apertureSize=5, L2gradient=True)
@@ -46,29 +47,31 @@ def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640
         screenCnt = posible_screenCnt[avrg_ligth.index(max(avrg_ligth))]
 
     pts1 = [(screenCnt[3][0][0], screenCnt[3][0][1]), (screenCnt[2][0][0], screenCnt[2][0][1]), (screenCnt[0][0][0], screenCnt[0][0][1]), (screenCnt[1][0][0], screenCnt[1][0][1])]
-    pts2 = [[0, 0], [640, 0], [0, 480], [640, 480]]
+    pts2 = [[0, 0], [res[0], 0], [0, res[1]], [res[0], res[1]]]
     if inverted:
         pts2 = mf.shift_array(pts2, 2) # rotate
     
     matrix = cv.getPerspectiveTransform(np.float32(pts1), np.float32(pts2))
-    result = cv.warpPerspective(img, matrix, (640, 480))
+    result = cv.warpPerspective(img, matrix, res)
 
     return result
 
-def detect_drawing(img: cv.typing.MatLike) -> tuple[list[cv.typing.MatLike], cv.typing.MatLike]:
+def detect_drawing(det_img: cv.typing.MatLike, cut_img: Optional[cv.typing.MatLike] = None) -> tuple[list[cv.typing.MatLike], cv.typing.MatLike]:
     """detects the drawings in the image, returns each drawing and the presence map"""
 
-    gray = cv.cvtColor(img.copy(), cv.COLOR_BGR2GRAY)
+    gray = cv.cvtColor(det_img.copy(), cv.COLOR_BGR2GRAY)
     _img = cv.convertScaleAbs(gray, None, 1.6, -50)
     blured = cv.GaussianBlur(_img, (9, 9), 0) 
     _img = cv.adaptiveThreshold(blured, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 15, 2)
     _img = cv.GaussianBlur(_img, (25, 25), 4) 
     _img = cv.adaptiveThreshold(blured, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2)
     _img = cv.bitwise_not(_img)
+
     precence_map = np.zeros(_img.shape, dtype=np.float64)
     for i in range(0, _img.shape[0], 2):
         for j in range(0, _img.shape[1], 2):
             precence_map[i-10:i+10, j-10:j+10] += _img[i, j]/255
+
     precence_map = cv.normalize(precence_map, None, 0, 255, cv.NORM_MINMAX)
     precence_map = cv.GaussianBlur(precence_map, (25, 25), 0)
     precence_map = cv.inRange(precence_map, int(precence_map.max())*0.4, 255)
@@ -77,7 +80,7 @@ def detect_drawing(img: cv.typing.MatLike) -> tuple[list[cv.typing.MatLike], cv.
     contours = cv.findContours(precence_map, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
     contours = imutils.grab_contours(contours)
     contours = sorted(contours, key = cv.contourArea, reverse = True)[:5]
-
+    
     new_imgs = []
 
     #draw contours
@@ -85,24 +88,24 @@ def detect_drawing(img: cv.typing.MatLike) -> tuple[list[cv.typing.MatLike], cv.
         peri = cv.arcLength(c, True)
         approx = cv.approxPolyDP(c, 0.02 * peri, True)
         x, y, w, h = cv.boundingRect(approx)
-        new_imgs.append(img[y:y+h, x:x+w])
-    
-    blured = cv.Canny(_img, 100, 200, apertureSize=3, L2gradient=True)
-    lines = cv.HoughLinesP(blured, 4, np.pi/180, 100, minLineLength=20, maxLineGap=2)
-    if lines is not None:
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            cv.line(precence_map, (x1, y1), (x2, y2), 255, 1)
+        if cut_img is not None:
+            hi1, wi1, chn1 = det_img.shape
+            hi2, wi2, chn2 = cut_img.shape
+            x, y = mf.transform_cordinate_frame((x,y), (wi2, hi2), (wi1, hi1))
+            w, h = mf.transform_cordinate_frame((w,h), (wi2, hi2), (wi1, hi1))
+            new_imgs.append(cut_img[y:y+h, x:x+w])
+        else:
+            new_imgs.append(det_img[y:y+h, x:x+w])
 
     return new_imgs, precence_map
 
 # test section
 if __name__ == "__main__":
-    filename = "machine vision/20240802_080556.jpg"
+    filename = "machine vision/20240802_080510.jpg"
     img = cv.imread(filename)
-    result = detect_drawing_page(img)
+    result = detect_drawing_page(img, res= (1754, 1240))
     precence = detect_drawing(result)[1]
-    results = detect_drawing(result)[0]
+    results = detect_drawing(result, result)[0]
 
     cv.imshow('result', result)
     for i in range(len(results)):
@@ -110,4 +113,3 @@ if __name__ == "__main__":
     cv.imshow('presence', precence)
     if cv.waitKey(0) & 0xff == 27:
         cv.destroyAllWindows()
-
