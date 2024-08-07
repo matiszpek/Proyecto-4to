@@ -46,15 +46,29 @@ def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640
 
         screenCnt = posible_screenCnt[avrg_ligth.index(max(avrg_ligth))]
 
-    pts1 = [(screenCnt[3][0][0], screenCnt[3][0][1]), (screenCnt[2][0][0], screenCnt[2][0][1]), (screenCnt[0][0][0], screenCnt[0][0][1]), (screenCnt[1][0][0], screenCnt[1][0][1])]
+    pts1 = [(screenCnt[3][0][0], screenCnt[3][0][1]), 
+            (screenCnt[2][0][0], screenCnt[2][0][1]), 
+            (screenCnt[0][0][0], screenCnt[0][0][1]), 
+            (screenCnt[1][0][0], screenCnt[1][0][1])]
+    pts2 = [[0, 0], [pros_res[0], 0], [0, pros_res[1]], [pros_res[0], pros_res[1]]]
+    if inverted:
+        pts2 = mf.shift_array(pts2, 2) # rotate
+    matrix = cv.getPerspectiveTransform(np.float32(pts1), np.float32(pts2))
+    p_result = cv.warpPerspective(_img, matrix, pros_res)
+
+    pts1 = [mf.transform_cordinate_frame(pts1[0], pros_res, res),
+            mf.transform_cordinate_frame(pts1[1], pros_res, res),
+            mf.transform_cordinate_frame(pts1[2], pros_res, res),
+            mf.transform_cordinate_frame(pts1[3], pros_res, res)]
     pts2 = [[0, 0], [res[0], 0], [0, res[1]], [res[0], res[1]]]
     if inverted:
         pts2 = mf.shift_array(pts2, 2) # rotate
-    
     matrix = cv.getPerspectiveTransform(np.float32(pts1), np.float32(pts2))
-    result = cv.warpPerspective(img, matrix, res)
+    b_result = cv.warpPerspective(img, matrix, res)
 
-    return result
+
+
+    return b_result, p_result
 
 def detect_drawing(det_img: cv.typing.MatLike, cut_img: Optional[cv.typing.MatLike] = None) -> tuple[list[cv.typing.MatLike], cv.typing.MatLike]:
     """detects the drawings in the image, returns each drawing and the presence map"""
@@ -104,10 +118,10 @@ if __name__ == "__main__":
     filename = "machine vision/20240802_080510.jpg"
     img = cv.imread(filename)
     result = detect_drawing_page(img, res= (1754, 1240))
-    precence = detect_drawing(result)[1]
-    results = detect_drawing(result, result)[0]
+    precence = detect_drawing(result[1])[1]
+    results = detect_drawing(result[1], result[0])[0]
 
-    cv.imshow('result', result)
+    cv.imshow('result', result[0])
     for i in range(len(results)):
         cv.imshow(f'result {i}', results[i])
     cv.imshow('presence', precence)
