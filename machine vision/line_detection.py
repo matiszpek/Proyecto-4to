@@ -4,14 +4,6 @@ import math
 import matplotlib.pyplot as plt
 import math_func as mf
 import image_crop as ic
-from skimage.morphology import skeletonize
-
-def skeletonize_image(input_image):
-
-    _, binary_image = cv.threshold(input_image, 127, 255, cv.THRESH_BINARY_INV)
-    binary_image = cv.bitwise_not(binary_image)
-    skeleton = skeletonize(binary_image // 255) * 255
-    return skeleton.astype(np.uint8)
 
 # image transform functions
 def apply_thresholds(gray, thresholds, adaptiveSettings):

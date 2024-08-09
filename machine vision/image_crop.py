@@ -56,15 +56,16 @@ def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640
     matrix = cv.getPerspectiveTransform(np.float32(pts1), np.float32(pts2))
     p_result = cv.warpPerspective(_img, matrix, pros_res)
 
-    pts1 = [mf.transform_cordinate_frame(pts1[0], pros_res, res),
-            mf.transform_cordinate_frame(pts1[1], pros_res, res),
-            mf.transform_cordinate_frame(pts1[2], pros_res, res),
-            mf.transform_cordinate_frame(pts1[3], pros_res, res)]
-    pts2 = [[0, 0], [res[0], 0], [0, res[1]], [res[0], res[1]]]
+    __img = cv.resize(img, res)
+    _pts1 = [mf.transform_cordinate_frame(pts1[0], res, pros_res),
+            mf.transform_cordinate_frame(pts1[1], res, pros_res),
+            mf.transform_cordinate_frame(pts1[2], res, pros_res),
+            mf.transform_cordinate_frame(pts1[3], res, pros_res)]
+    _pts2 = [[0, 0], [res[0], 0], [0, res[1]], [res[0], res[1]]]
     if inverted:
-        pts2 = mf.shift_array(pts2, 2) # rotate
-    matrix = cv.getPerspectiveTransform(np.float32(pts1), np.float32(pts2))
-    b_result = cv.warpPerspective(img, matrix, res)
+        pts2 = mf.shift_array(pts2, 0) # rotate
+    _matrix = cv.getPerspectiveTransform(np.float32(_pts1), np.float32(_pts2))
+    b_result = cv.warpPerspective(__img, _matrix, res)
 
 
 
@@ -117,7 +118,7 @@ def detect_drawing(det_img: cv.typing.MatLike, cut_img: Optional[cv.typing.MatLi
 if __name__ == "__main__":
     filename = "machine vision/20240802_080510.jpg"
     img = cv.imread(filename)
-    result = detect_drawing_page(img, res= (1754, 1240))
+    result = detect_drawing_page(img, res= (1080, 720))
     precence = detect_drawing(result[1])[1]
     results = detect_drawing(result[1], result[0])[0]
 
