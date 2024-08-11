@@ -71,8 +71,11 @@ def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640
 
     return b_result, p_result
 
-def detect_drawing(det_img: cv.typing.MatLike, cut_img: Optional[cv.typing.MatLike] = None) -> tuple[list[cv.typing.MatLike], cv.typing.MatLike]:
+def detect_drawing(det_img: cv.typing.MatLike | Tuple[cv.typing.MatLike, cv.typing.MatLike], cut_img: Optional[cv.typing.MatLike] = None) -> tuple[list[cv.typing.MatLike], cv.typing.MatLike]:
     """detects the drawings in the image, returns each drawing and the presence map"""
+
+    if isinstance(det_img, tuple):
+        cut_img, det_img = det_img
 
     gray = cv.cvtColor(det_img.copy(), cv.COLOR_BGR2GRAY)
     _img = cv.convertScaleAbs(gray, None, 1.6, -50)

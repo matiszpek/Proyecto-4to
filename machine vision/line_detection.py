@@ -1,56 +1,50 @@
 import cv2 as cv
 import numpy as np
 import math
-import matplotlib.pyplot as plt
 import math_func as mf
 import image_crop as ic
-
-# image transform functions
-def apply_thresholds(gray, thresholds, adaptiveSettings):
-    mask1 = cv.bitwise_not(cv.threshold(gray, thresholds[0], thresholds[1], cv.THRESH_OTSU)[1])
-    mask = cv.bitwise_not(cv.adaptiveThreshold(gray, thresholds[0], cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, adaptiveSettings[0], adaptiveSettings[1]))
-    mask = cv.bitwise_and(mask, mask1)
-    mask = cv.inRange(mask, 200, 255)
-    return mask
-
-def apply_canny(mask):
-    return cv.Canny(mask, 110, 125, apertureSize=7, L2gradient=True)
 
 # image processing
 filename = "machine vision/20240802_080510.jpg"
 
-img = cv.imread(filename)
-result = ic.detect_drawing_page(img)
-precence = ic.detect_drawing(result)[1]
+img_ = cv.imread(filename)
+result = ic.detect_drawing_page(img_, res= (1080, 720))
 img = ic.detect_drawing(result)[0][0]
+gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+inv = 255 - gray
+blured = cv.GaussianBlur(inv, (9, 9), 0)
+inv_blured = 255 - blured
+img = cv.divide(gray, inv_blured, scale=256)
 
-# gray = skeletonize_image(img)
-# blured = cv.GaussianBlur(gray, (3, 3), 2)
-# thr = apply_thresholds(blured, (0, 255), (11, 2))
-# canny = apply_canny(thr)
-# cv.floodFill(canny,None,(0,0),255)
-# cv.floodFill(canny,None,(0,0),0)
-# dilation = cv.dilate(canny, rect_kernel, iterations = 1).astype(np.uint8)
-# lines = mf.get_lines(canny)
-# lines_ = [] 
+# thresholding
+mask = cv.inRange(img, 0, int(np.max(img)*0.975))
+
+# hough line detection
+lines = cv.HoughLinesP(mask, .5, np.pi/180, 4, minLineLength=10, maxLineGap=10)
+lines_ = []
 
 # image vizualisation
-"""if lines is not None:
+if lines is not None:
     for line in lines:
         x1, y1, x2, y2 = line[0]
         lines_.append(mf.Line((x1, y1), (x2, y2), math.atan2(y2 - y1, x2 - x1)))
-
-mf.correct_angles(lines_)
-lines_, ignored = mf.reduce_lines(3, lines_, blured, 200 , 10) 
 
 new_img = np.zeros((600,800,3), dtype=np.uint8)
 
 for line in lines_:
     pass
-    mf.draw_line(new_img, line, " Line "+str(lines_.index(line)))
-"""
+    mf.draw_line(new_img, line, "")
 
+# image complexity
+img_complexity = mf.get_line_presence(lines_, img, (img.shape[0]/2, img.shape[1]/2))
+img_complexity = cv.GaussianBlur(img_complexity, (9, 9), 0)
+img_complexity = cv.inRange(img_complexity, int(np.max(img_complexity)*0.9), 255)
+
+# image vizualisation
+img_complexity = cv.resize(img_complexity, img.shape[:2][::-1])
+img = cv.addWeighted(img, 0.5, img_complexity, 0.5, 0)
 cv.imshow("threshold", img)
-# cv.imshow("canny", thr)
-# cv.imshow("thr", canny)
+cv.imshow("canny", img_complexity)
+cv.imshow("thr", new_img)
+cv.imshow("original", gray)
 cv.waitKey(0)
