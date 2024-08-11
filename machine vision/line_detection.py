@@ -37,8 +37,9 @@ def get_img_complexity(img: cv.typing.MatLike, ) -> cv.typing.MatLike:
     return img_complexity
 
 mask = get_img_contrast(gray)
-lines = cv.HoughLinesP(mask, 1, np.pi/180, 20, minLineLength=20, maxLineGap=10)
+lines = cv.HoughLinesP(mask, 1, np.pi/180, 20, minLineLength=20, maxLineGap=3)
 lines_ = []
+
 # image vizualisation
 if lines is not None:
     for line in lines:
@@ -70,14 +71,18 @@ new_img = np.zeros((600,800,3), dtype=np.uint8)
 # image vizualisation
 img_complexity = get_img_complexity(gray)
 img_complexity = cv.resize(img_complexity, img.shape[:2][::-1])
-img_complexity = cv.cvtColor(img_complexity, cv.COLOR_GRAY2BGR)
-img = cv.addWeighted(img, 0.5, img_complexity, 0.5, 0)
+# mask = cv.addWeighted(cv.bitwise_not(img_complexity), 0.5, mask, 0.5, 0)
 
 for line in lines_:
     pix = mf.scan_line_pixels(line, cv.GaussianBlur(mask, (3, 3), 0))
-    certanty = np.mean(np.array(pix))  
+    certanty = np.mean(np.array(pix)) 
     if certanty > 120:
         mf.draw_line(new_img, line, "", (255, certanty, 255))
+    else:
+        print("deleted line", certanty, line)
+        
+img_complexity = cv.cvtColor(img_complexity, cv.COLOR_GRAY2BGR)
+img = cv.addWeighted(img, 0.5, img_complexity, 0.5, 0)
 
 cv.imshow("threshold", mask)
 cv.imshow("canny", img_complexity)
