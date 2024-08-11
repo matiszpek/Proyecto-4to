@@ -38,8 +38,8 @@ def get_img_complexity(img: cv.typing.MatLike, ) -> cv.typing.MatLike:
 
 mask = get_img_contrast(gray)
 lines = cv.HoughLinesP(mask, 1, np.pi/180, 20, minLineLength=20, maxLineGap=3)
-lines_ = []
 
+lines_ = []
 # image vizualisation
 if lines is not None:
     for line in lines:
@@ -82,6 +82,8 @@ for line in lines_:
         print("deleted line", certanty, line)
         
 img_complexity = cv.cvtColor(img_complexity, cv.COLOR_GRAY2BGR)
+img_complexity[:,:,0] = 0
+img_complexity[:,:,2] = 0
 img = cv.addWeighted(img, 0.5, img_complexity, 0.5, 0)
 
 cv.imshow("threshold", mask)
