@@ -62,9 +62,9 @@ class Line:
             if normal is not None:
                 self.normal = normal
             else:
-                try:
+                if abs(self.end[0] - self.start[0]) != 0:
                     self.normal = abs(self.end[1] - self.start[1]) / abs(self.end[0] - self.start[0])
-                except ZeroDivisionError:
+                else:
                     self.normal = PI  
 
     def nomral_rad(self) -> float:
@@ -132,7 +132,7 @@ def distance_between_lines_vectorized_normalized(line1: Line, line2: Line) -> tu
     rp1 = rotate_point(line2.midpoint, -line1.normal, line1.midpoint)
     return vectorized_distance_between_points(line1.midpoint, rp1)
 
-def correct_angles(lines_: list[Line]):
+def correct_angles(lines_: list[Line]) -> list[Line]:
     for line in lines_:
         angle = line.normal
         if angle > PI/2:
@@ -141,6 +141,7 @@ def correct_angles(lines_: list[Line]):
         elif angle < -PI/2:
             angle = PI + angle
             line.normal = angle
+    return lines_
 
 def reduce_lines(lineReductions: int, lines_: list[Line], img_: cv.typing.MatLike, line_threshold: int, check_points: int = 2) -> tuple[list[Line], list[Line]]: # WIP
     """
@@ -182,7 +183,7 @@ def draw_line(img_lines: cv.typing.MatLike, line: Line, text: str = None, color:
     p1, p2, mp, type, ang = line.get()
     x1, y1 = p1
     x2, y2 = p2
-    cv.line(img_lines, (x1, y1), (x2, y2), (0, 255, 0), 1)
+    cv.line(img_lines, (x1, y1), (x2, y2), color, 1)
     cv.putText(img_lines, text, (int((x2+x1)/2), int((y2+y1)/2)), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv.LINE_AA)
     # cv.circle(img_lines, (x1, y1), 5, (255, 0, 0), -1)
     # cv.circle(img_lines, (x2, y2), 5, (255, 255, 0), -1)
@@ -262,6 +263,23 @@ def line_intersect(line1: Line, line2: Line, extend: Tuple[bool, bool] = (False,
     else:
         return infinite_line_intersection(line1, line2)
     
+def check_line_passes_box(line: Line, box: tuple[tuple[int, int], tuple[int, int]]) -> bool:
+    """checks if line passes through box"""
+    m, b = line.slope_and_intercept()
+
+    x1, y1 = line.start
+    x2, y2 = line.end
+    box_left, box_top = box[0]
+    box_right, box_bottom = box[1]
+
+    # Check if the line passes through diagonalls of the box
+    if line_intersect(line, Line((box_left, box_top), (box_right, box_bottom))) | line_intersect(line, Line((box_right, box_top), (box_left, box_bottom))):
+        return True
+    # Check if the line is inside the box
+    elif box_left <= x1 <= box_right and box_left <= x2 <= box_right and box_top <= y1 <= box_bottom and box_top <= y2 <= box_bottom:
+        return True
+    else:
+        return False
 
 def join_borders(line1: Line, line2: Line) -> Tuple[Line, Line]:
     ip = line_intersect(line1, line2, (True, True))
@@ -339,8 +357,7 @@ def manage_opens(lines: list[Line], img: cv.typing.MatLike) -> tuple[list[Line],
     """connects all unconected lines and returns a new set with all of them conected and with the IDs of all the conected lines"""
     points, connections = lines_to_point_connections(lines)
 
-    for p in points:
-        pass
+    raise NotImplementedError
 
 def get_lines(can):
     return cv.HoughLinesP(
@@ -376,3 +393,75 @@ def transform_cordinate_frame(cord: tuple[float, float], frame1: tuple[int, int]
     t_m = (frame1[0] / frame2[0], frame1[1] / frame2[1])
     return int(cord[0]*t_m[0]), int(cord[1]*t_m[1])
 
+def lines_to_points(lines: list[Line]) -> list[tuple[int, int]]:
+    points = []
+    for line in lines:
+        points.append(line.start)
+        points.append(line.end)
+    return points
+
+def get_points_presence(points: list[tuple[int, int]], og_img: cv.typing.MatLike | tuple[int, int], res: tuple[int, int]) -> list[bool]:
+    """returns an map with resolution res with the presence of points"""
+
+    if isinstance(og_img, cv.typing.MatLike):
+        w, h = og_img.shape[:2]
+    else:
+        w, h = og_img
+    
+    presence = np.zeros((int(res[0]), int(res[1]), 1), dtype=np.float64)
+    point_weigth = 256/points.__len__()
+    for point in points:
+        x, y = transform_cordinate_frame(point, res, (w, h))
+        presence[y, x] += point_weigth
+    
+    presence = cv.normalize(presence, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
+    return presence
+
+def get_line_presence(lines: list[Line], og_img: cv.typing.MatLike | tuple[int, int], res: tuple[int, int]) -> list[bool]:
+    """returns an map with resolution res with the presence of lines"""
+
+    if isinstance(og_img, cv.typing.MatLike):
+        w, h = og_img.shape[:2]
+    else:
+        w, h = og_img
+    
+    presence = np.zeros((int(res[0]), int(res[1]), 1), dtype=np.float64)
+    line_weigth = 256/lines.__len__()
+    for line in lines:
+        x1, y1 = transform_cordinate_frame(line.start, res, (w, h))
+        x2, y2 = transform_cordinate_frame(line.end, res, (w, h))
+        cv.line(presence, (x1, y1), (x2, y2), (line_weigth), 2)
+    
+    presence = cv.normalize(presence, None, 0, 255, cv.NORM_MINMAX, cv.CV_8U)
+    return presence
+
+def scan_line_pixels(line: Line, img: cv.typing.MatLike) -> list[int]:
+    """returns a list of pixels from a line in an image"""
+    pixels = []
+    x1, y1 = line.start
+    x2, y2 = line.end
+    dx = abs(x2 - x1)
+    dy = abs(y2 - y1)
+    x, y = x1, y1
+    sx = -1 if x1 > x2 else 1
+    sy = -1 if y1 > y2 else 1
+
+    if dx > dy:
+        err = dx / 2.0
+        while x != x2:
+            pixels.append(img[y, x])
+            err -= dy
+            if err < 0:
+                y += sy
+                err += dx
+            x += sx
+    else:
+        err = dy / 2.0
+        while y != y2:
+            pixels.append(img[y, x])
+            err -= dx
+            if err < 0:
+                x += sx
+                err += dy
+            y += sy
+    return pixels
