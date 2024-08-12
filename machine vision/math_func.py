@@ -465,3 +465,26 @@ def scan_line_pixels(line: Line, img: cv.typing.MatLike) -> list[int]:
                 err += dy
             y += sy
     return pixels
+
+def get_img_contrast(img: cv.typing.MatLike, ) -> cv.typing.MatLike:  
+    inv = 255 - img
+    blured = cv.GaussianBlur(inv, (9, 9), 1)
+    inv_blured = 255 - blured
+    img = cv.divide(img, inv_blured, scale=256)
+    mask = cv.inRange(img, 0, int(np.max(img)*0.975))
+    return mask
+
+# image complexity
+def get_img_complexity(img: cv.typing.MatLike, ) -> cv.typing.MatLike:
+    
+    mask = get_img_contrast(img)
+    lines = cv.HoughLinesP(mask, .25, np.pi/360, 2, minLineLength=10, maxLineGap=10)
+    lines_ = []
+    if lines is not None:
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            lines_.append(Line((x1, y1), (x2, y2), math.atan2(y2 - y1, x2 - x1)))
+    img_complexity = get_line_presence(lines_, img, (img.shape[0]/2, img.shape[1]/2))
+    img_complexity = cv.GaussianBlur(img_complexity, (9, 9), 0)
+    img_complexity = cv.inRange(img_complexity, int(np.max(img_complexity)*0.9), 255)
+    return img_complexity
