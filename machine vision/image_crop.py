@@ -4,6 +4,9 @@ import imutils
 import math_func as mf
 import math
 from typing import Union, Optional, Tuple
+from tqdm import tqdm
+import time
+from precence_map_module import generate_precence_map # migth not detect but runs fine
 
 def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640, 480), inverted: bool = False, res: tuple[int, int] = (1080, 720)) -> Tuple[cv.typing.MatLike, cv.typing.MatLike]:
     """crops in to just the main page"""
@@ -85,10 +88,11 @@ def detect_drawing(det_img: cv.typing.MatLike | Tuple[cv.typing.MatLike, cv.typi
     _img = cv.adaptiveThreshold(blured, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2)
     _img = cv.bitwise_not(_img)
 
-    precence_map = np.zeros(_img.shape, dtype=np.float64)
-    for i in range(0, _img.shape[0], 2):
+    """precence_map = np.zeros(_img.shape, dtype=np.float64)
+    for i in tqdm(range(0, _img.shape[0], 2)):
         for j in range(0, _img.shape[1], 2):
-            precence_map[i-10:i+10, j-10:j+10] += _img[i, j]/255
+            precence_map[i-10:i+10, j-10:j+10] += _img[i, j]/255"""
+    precence_map = generate_precence_map(_img)
 
     precence_map = cv.normalize(precence_map, None, 0, 255, cv.NORM_MINMAX)
     precence_map = cv.GaussianBlur(precence_map, (25, 25), 0)
@@ -102,6 +106,7 @@ def detect_drawing(det_img: cv.typing.MatLike | Tuple[cv.typing.MatLike, cv.typi
     new_imgs = []
 
     #draw contours
+    start_time = time.time_ns
     for i, c in enumerate(contours):
         peri = cv.arcLength(c, True)
         approx = cv.approxPolyDP(c, 0.02 * peri, True)
@@ -114,7 +119,6 @@ def detect_drawing(det_img: cv.typing.MatLike | Tuple[cv.typing.MatLike, cv.typi
             new_imgs.append(cut_img[y:y+h, x:x+w])
         else:
             new_imgs.append(det_img[y:y+h, x:x+w])
-
     return new_imgs, precence_map
 
 # test section

@@ -3,7 +3,7 @@ import numpy as np
 import math
 import math_func as mf
 import image_crop as ic
-import easyocr
+from tqdm import tqdm
 
 # image processing
 filename = "machine vision/20240802_080510.jpg"
@@ -73,13 +73,12 @@ img_complexity = get_img_complexity(gray)
 img_complexity = cv.resize(img_complexity, img.shape[:2][::-1])
 # mask = cv.addWeighted(cv.bitwise_not(img_complexity), 0.5, mask, 0.5, 0)
 
-for line in lines_:
+for line in tqdm(lines_):
     pix = mf.scan_line_pixels(line, cv.GaussianBlur(mask, (3, 3), 0))
     certanty = np.mean(np.array(pix)) 
     if certanty > 120:
         mf.draw_line(new_img, line, "", (255, certanty, 255))
-    else:
-        print("deleted line", certanty, line)
+
         
 img_complexity = cv.cvtColor(img_complexity, cv.COLOR_GRAY2BGR)
 img_complexity[:,:,0] = 0

@@ -62,9 +62,9 @@ class Line:
             if normal is not None:
                 self.normal = normal
             else:
-                try:
+                if abs(self.end[0] - self.start[0]) != 0:
                     self.normal = abs(self.end[1] - self.start[1]) / abs(self.end[0] - self.start[0])
-                except ZeroDivisionError:
+                else:
                     self.normal = PI  
 
     def nomral_rad(self) -> float:
