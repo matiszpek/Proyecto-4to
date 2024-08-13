@@ -13,10 +13,12 @@ result = ic.detect_drawing_page(img_, res= (1080*2, 720*2))
 img = ic.detect_drawing(result)[0][0]
 gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
-mask = mf.get_img_contrast(gray)
+or_mask = mf.get_img_contrast(gray)
+mask = cv.morphologyEx(or_mask, cv.MORPH_CLOSE, np.ones((3,3),np.uint8))
+
 # mask = cv.Canny(mask, 100, 200, apertureSize=5)
 lines = cv.HoughLinesP(mask, 2, np.pi/180, 80, minLineLength=40, maxLineGap=3)
-lines = np.concatenate([cv.HoughLinesP(mask, 2, np.pi/180, 80, minLineLength=5, maxLineGap=1), lines])
+lines = np.concatenate([cv.HoughLinesP(mask, 2, np.pi/180, 80, minLineLength=3, maxLineGap=1), lines])
 
 lines_ = []
 
@@ -53,16 +55,23 @@ img_complexity = mf.get_img_complexity(gray)
 img_complexity = cv.resize(img_complexity, img.shape[:2][::-1])
 # mask = cv.addWeighted(cv.bitwise_not(img_complexity), 0.5, mask, 0.5, 0)
 
+deleted = 0
 for line in tqdm(lines_):
-    pix = mf.scan_line_pixels(line, cv.GaussianBlur(mask, (3, 3), 0))
+    pix = mf.scan_line_pixels(line, cv.GaussianBlur(or_mask, (3, 3), 0))
     certanty = np.mean(np.array(pix)) 
-    if certanty > 1:
-        mf.draw_line(new_img, line, "", (255, certanty, 255))
+    if certanty > 120:
+        mf.draw_line(new_img, line, "", (int(abs(line.normal)), certanty, 255))
+    else:
+        deleted += 1
+
+print(deleted)
         
 img_complexity = cv.cvtColor(img_complexity, cv.COLOR_GRAY2BGR)
 img_complexity[:,:,0] = 0
 img_complexity[:,:,2] = 0
 img = cv.addWeighted(img, 0.5, img_complexity, 0.5, 0)
+
+new_img = cv.morphologyEx(new_img, cv.MORPH_CLOSE, np.ones((2,2),np.uint8))
 
 cv.imshow("threshold", mask)
 cv.imshow("canny", img_complexity)
