@@ -488,3 +488,7 @@ def get_img_complexity(img: cv.typing.MatLike, ) -> cv.typing.MatLike:
     img_complexity = cv.GaussianBlur(img_complexity, (9, 9), 0)
     img_complexity = cv.inRange(img_complexity, int(np.max(img_complexity)*0.9), 255)
     return img_complexity
+
+def check_lines_same(line1: Line, line2: Line) -> bool:
+
+    # https://stackoverflow.com/questions/30746327/get-a-single-line-representation-for-multiple-close-by-lines-clustered-together

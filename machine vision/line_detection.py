@@ -16,38 +16,41 @@ gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 or_mask = mf.get_img_contrast(gray)
 mask = cv.morphologyEx(or_mask, cv.MORPH_CLOSE, np.ones((3,3),np.uint8))
 
-# mask = cv.Canny(mask, 100, 200, apertureSize=5)
-lines = cv.HoughLinesP(mask, 2, np.pi/180, 80, minLineLength=40, maxLineGap=3)
-lines = np.concatenate([cv.HoughLinesP(mask, 2, np.pi/180, 80, minLineLength=3, maxLineGap=1), lines])
 
-lines_ = []
+def get_lines():
+    lines = cv.HoughLinesP(mask, 2, np.pi/180, 80, minLineLength=40, maxLineGap=3)
+    lines = np.concatenate([cv.HoughLinesP(mask, 2, np.pi/180, 80, minLineLength=3, maxLineGap=1), lines])
 
-# image vizualisation
-if lines is not None:
-    for line in lines:
-        x1, y1, x2, y2 = line[0]
-        if x1 < x2:
-            x = x1
-            y = y1
-            x1 = x2
-            y1 = y2
-            x2 = x
-            y2 = y
-        
-        if x1 == x2:
-            angle = np.pi
-        elif y1 == y2:
-            angle = 0
-        else:
-            angle = math.atan((y2 - y1)/(x2 - x1))
+    lines_ = []
 
-            if abs(angle) > np.pi/2:
-                angle = angle - np.pi
-            elif abs(angle) < np.pi/2:
-                angle = angle + np.pi
+    # image vizualisation
+    if lines is not None:
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            if x1 < x2:
+                x = x1
+                y = y1
+                x1 = x2
+                y1 = y2
+                x2 = x
+                y2 = y
+            
+            if x1 == x2:
+                angle = np.pi
+            elif y1 == y2:
+                angle = 0
+            else:
+                angle = math.atan((y2 - y1)/(x2 - x1))
 
-        lines_.append(mf.Line((x1, y1), (x2, y2), normal=angle))
+                if abs(angle) > np.pi/2:
+                    angle = angle - np.pi
+                elif abs(angle) < np.pi/2:
+                    angle = angle + np.pi
 
+            lines_.append(mf.Line((x1, y1), (x2, y2), normal=angle))
+    return lines_
+
+lines_ = get_lines()
 new_img = np.zeros((600,800,3), dtype=np.uint8)
 
 # image vizualisation
