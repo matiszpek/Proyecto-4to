@@ -489,6 +489,79 @@ def get_img_complexity(img: cv.typing.MatLike, ) -> cv.typing.MatLike:
     img_complexity = cv.inRange(img_complexity, int(np.max(img_complexity)*0.9), 255)
     return img_complexity
 
-def check_lines_same(line1: Line, line2: Line) -> bool:
+def create_line_bbox(line: Line, thickness: int, extension_rate: float) -> np.ndarray:
+    """
+    Create a rotated bounding box around a line.
+    
+    :param line: Line object containing start and end points
+    :param thickness: Thickness of the line in pixels
+    :param extension_rate: Proportional extension rate of the bounding box
+    :return: Array of four points representing the corners of the bounding box
+    """
 
-    # https://stackoverflow.com/questions/30746327/get-a-single-line-representation-for-multiple-close-by-lines-clustered-together
+    direction = np.array([line.end[0] - line.start[0], line.end[1] - line.start[1]], dtype=np.float64)
+    length = np.linalg.norm(direction)
+    direction /= length
+    
+    perpendicular = np.array([-direction[1], direction[0]], dtype=np.float64) * thickness / 2
+    
+    extension = direction * length * extension_rate
+    extended_start = np.array(line.start) - extension
+    extended_end = np.array(line.end) + extension
+    
+    top_left = extended_start + perpendicular
+    bottom_left = extended_start - perpendicular
+    top_right = extended_end + perpendicular
+    bottom_right = extended_end - perpendicular
+    
+    return np.array([top_left, top_right, bottom_right, bottom_left])
+
+def connected_components(graph):
+    def dfs(node, visited, component):
+        visited.add(node)
+        component.append(node)
+        for neighbor in graph[node]:
+            if neighbor not in visited:
+                dfs(neighbor, visited, component)
+    
+    visited = set()
+    components = []
+    
+    for node in graph:
+        if node not in visited:
+            component = []
+            dfs(node, visited, component)
+            components.append(component)
+    
+    return components
+
+def check_lines_same(line1: Line, line2: Line, thk: float, ext: float, ang_thr: float) -> bool:
+    if abs(line1.normal - line2.normal) > ang_thr:
+        return False
+    
+    bbox = create_line_bbox(line1, thk, ext)
+    return cv.pointPolygonTest(bbox, line2.start, False) >= 0 and cv.pointPolygonTest(bbox, line2.end, False) >= 0
+    
+def check_lines_same_list(lines: list[Line], thk: float, ext: float, ang_thr: float) -> list[list[int]]:
+    """returns a graph with all nodes considered same connected"""
+    same = []
+    for i, line1 in enumerate(lines):
+        line_same = []
+        for j, line2 in enumerate(lines):
+            if i == j:
+                continue
+            if check_lines_same(line1, line2, thk, ext, ang_thr):
+                line_same.append(j)
+        same.append(line_same)
+    return same
+
+def get_grouped_lines(lines: list[Line], thk: float, ext: float, ang_thr: float) -> list[list[Line]]:
+    same = check_lines_same_list(lines, thk, ext, ang_thr)
+    _lines = []
+    for i in same:
+        l = []
+        for j in i:
+            l.append(lines[j])
+        _lines.append(l)
+    return _lines
+
