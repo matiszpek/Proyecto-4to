@@ -51,21 +51,18 @@ def get_lines():
     return lines_
 
 lines_ = get_lines()
-new_img = np.zeros((600,800,3), dtype=np.uint8)
+new_img = np.zeros((600,800,3), dtype=np.uint8) 
 
 # image vizualisation
 img_complexity = mf.get_img_complexity(gray)
 img_complexity = cv.resize(img_complexity, img.shape[:2][::-1])
 # mask = cv.addWeighted(cv.bitwise_not(img_complexity), 0.5, mask, 0.5, 0)
 
+lines_ = mf.tidy_lines(lines_, mask, 5, 1.2, math.pi/30)
 deleted = 0
 for line in tqdm(lines_):
-    pix = mf.scan_line_pixels(line, cv.GaussianBlur(or_mask, (3, 3), 0))
-    certanty = np.mean(np.array(pix)) 
-    if certanty > 120:
-        mf.draw_line(new_img, line, "", (int(abs(line.normal)), certanty, 255))
-    else:
-        deleted += 1
+    mf.draw_line(new_img, line, "", (int(abs(line.normal)), 255, 255))
+    
 
 print(deleted)
         

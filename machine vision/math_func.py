@@ -51,6 +51,7 @@ class Line:
             self.n_dist = start_or_line.n_dist
             self.line_type = start_or_line.line_type
             self.normal = start_or_line.normal
+            self.len = start_or_line.len
         else:
             # If tuples for start and end points are passed
             self.start = start_or_line
@@ -58,6 +59,7 @@ class Line:
             self.midpoint = ((self.start[0] + self.end[0]) // 2, (self.start[1] + self.end[1]) // 2)
             self.n_dist = (self.end[0] - self.start[0], self.end[1] - self.start[1])
             self.line_type = line_type  # 'drawing' or 'measurement'
+            self.len = distance_between_points(self.start, self.end)
             
             if normal is not None:
                 self.normal = normal
@@ -66,6 +68,12 @@ class Line:
                     self.normal = abs(self.end[1] - self.start[1]) / abs(self.end[0] - self.start[0])
                 else:
                     self.normal = PI  
+
+    def update_values(self):
+        self.midpoint = ((self.start[0] + self.end[0]) // 2, (self.start[1] + self.end[1]) // 2)
+        self.n_dist = (self.end[0] - self.start[0], self.end[1] - self.start[1])
+        self.normal = abs(self.end[1] - self.start[1]) / abs(self.end[0] - self.start[0]) if self.end[0] != self.start[0] else PI
+        self.len = distance_between_points(self.start, self.end)
 
     def nomral_rad(self) -> float:
         """returns normal of line in radians"""
@@ -115,9 +123,13 @@ class Line:
     def swap_ends(self):
         """Swap the start and end points of the line."""
         self.start, self.end = self.end, self.start
-        self.midpoint = ((self.start[0] + self.end[0]) // 2, (self.start[1] + self.end[1]) // 2)
-        self.n_dist = (self.end[0] - self.start[0], self.end[1] - self.start[1])
-        self.normal = abs(self.end[1] - self.start[1]) / abs(self.end[0] - self.start[0]) if self.end[0] != self.start[0] else PI
+        self.update_values()
+
+    def extend(self, ext1: float, ext2: float):
+        """extend line in either direction by specified amount"""
+        self.start = self.start + math.tan(self.normal)*ext1
+        self.end = self.end + math.tan(self.normal)*ext2
+        self.update_values
 
 def distance_between_lines(line1: Line, line2: Line) -> float:
     """returns distance between two lines"""
@@ -516,7 +528,7 @@ def create_line_bbox(line: Line, thickness: int, extension_rate: float) -> np.nd
     
     return np.array([top_left, top_right, bottom_right, bottom_left])
 
-def connected_components(graph):
+def connected_components(graph: list[list[int]]) -> list[list[int]]:
     def dfs(node, visited, component):
         visited.add(node)
         component.append(node)
@@ -558,10 +570,68 @@ def check_lines_same_list(lines: list[Line], thk: float, ext: float, ang_thr: fl
 def get_grouped_lines(lines: list[Line], thk: float, ext: float, ang_thr: float) -> list[list[Line]]:
     same = check_lines_same_list(lines, thk, ext, ang_thr)
     _lines = []
-    for i in same:
+    groups = connected_components(same)
+    for i in groups:
         l = []
         for j in i:
             l.append(lines[j])
         _lines.append(l)
+
     return _lines
 
+def gen_line_points_from_equation(m: float, origin: tuple[int, int], leng: float) -> tuple[tuple[float, float], tuple[float, float]]:
+    """returns the two points of a line with slope 'm' starting in the origin and extending a certain length"""
+    angle = math.atan(m)
+    x1, y1 = origin
+    x2 = x1 + leng * math.cos(angle)
+    y2 = y1 + leng * math.sin(angle)
+
+    return (x1, y1), (x2, y2)
+
+def reduce_line_group(lines: list[Line], img: cv.typing.MatLike) -> Line:
+    normals = []
+    centers = []
+    for l in lines:
+        normals.append(l.slope_and_intercept()[0])
+        centers.append(l.midpoint)
+    origin = np.mean(centers)
+    m = np.mean(normals)
+
+    p1, p2 = gen_line_points_from_equation(m, origin, 1)
+    line = Line(p1, p2)
+
+    max_length = list(map(lambda x: x.len, lines)).max()
+
+    done = False
+    front = False
+    while not done:
+        if front:
+            line.extend(1, 0)
+        else:
+            line.extend(0, 1)
+        pix = scan_line_pixels(line, img)
+        if np.mean(pix) < 220 or line.len > max_length:
+            done = True
+        front = not front
+    return line
+
+def reduce_lines_grouped(lines: list[list[Line]], img: cv.typing.MatLike) -> list[Line]:
+    reduced = []
+    for group in lines:
+        reduced.append(reduce_line_group(group, img))
+    return reduced 
+
+def tidy_lines(lines: list[Line], img: cv.typing.MatLike, thk: float, ext: float, ang_thr: float) -> list[Line]:
+    """
+    makes messy lines not messy :) jk, it groups up similar lines into single line objects.
+
+    :param lines: List of lines to get tidyed
+    :param img: Procesing image for line simplification
+    :param thk: Width of similarity detection bounding box
+    :param ext: Proportional extension of the bounding box for line similarity
+    :param ang_thr: Angle threshold diference between lines
+    :return: List of tidyed single lines (hopefully)
+    """
+
+    g_lines = get_grouped_lines(lines, thk, ext, ang_thr)
+    return reduce_lines_grouped(g_lines, img)
