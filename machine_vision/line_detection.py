@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 import math
-import math_func as mf
+import libs.math_func as mf
 import image_crop as ic
 from tqdm import tqdm
 

@@ -1,7 +1,7 @@
 import numpy as np
 import cv2 as cv
 import imutils
-import math_func as mf
+import libs.math_func as mf
 import math
 from typing import Union, Optional, Tuple
 from tqdm import tqdm

@@ -1,0 +1,28 @@
+Metadata-Version: 2.1
+Name: math-func
+Version: 0.1
+Summary: A short description of your module
+Home-page: https://github.com/matiszpek/Proyecto-4to
+Author: Manuel Rao
+Author-email: manumanolo178@gmail.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+
+# SketchVision
+## introduccion
+Convierte multiples vistas ortograficas 2D de un objeto 3D a un modelo 3D.
+
+## procesos
+Utilizamos multiples procesos diferentes para hacer la conversion, primero utilizamos Machine vision para transformar fotos de los planos en imagenes planas y faciles de procesar, luego usamos multiples IAs y metodos de machine vision tradicionales para procesar las imagenes en una version digital indexada de todos los objetos en la imagen, por ultimo usamos una serie de algoritmos para relacionar las diferentes vistas y generar el modelo 3D.
+
+## integrantes
+
+- [@matiszpek]( https://github.com/matiszpek): - Matias Ariel Szpektor
+- [@matimay]( https://github.com/matimay): - Matias Mayans Kohor
+- [@luxcas213]( https://github.com/luxcas213): - Lucas Garbate
+- [@porfi2089](https://github.com/porfi2089): - Manuel Rao
+
+# status: WIP
