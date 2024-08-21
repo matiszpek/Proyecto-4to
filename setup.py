@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+"""from setuptools import setup, find_packages
 
 setup(
     name='math_func',  # Name of your package
@@ -17,4 +17,23 @@ setup(
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.6',  # Minimum Python version requirement
+)
+"""
+
+from setuptools import setup, Extension
+import pybind11
+
+ext_modules = [
+    Extension(
+        "precence_map_module",
+        ["E:/projects/tecnico/proyecto ORT2024/Proyecto-4to/precence_map_module.cpp"],
+        include_dirs=[pybind11.get_include()],
+        language="c++"
+    ),
+]
+
+setup(
+    name="precence_map_module",
+    ext_modules=ext_modules,
+    zip_safe=False,
 )

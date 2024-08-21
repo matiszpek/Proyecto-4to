@@ -18,7 +18,6 @@ z_ax = figure_.add_subplot(223)
 if input('Do you want to add noise? [y/n] ') != 'y':
     random_scale = 0
 
-
 x_points = list(set(list(zip([float(row[0] + r.random()*random_scale) for row in _m.x], [float(row[0] + r.random()*random_scale) for row in _m.y]))))
 y_points = list(set(list(zip([float(row[0] + r.random()*random_scale) for row in _m.y], [float(row[0] + r.random()*random_scale) for row in _m.z]))))
 z_points = list(set(list(zip([float(row[0] + r.random()*random_scale) for row in _m.z], [float(row[0] + r.random()*random_scale) for row in _m.x]))))

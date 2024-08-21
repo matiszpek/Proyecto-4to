@@ -1,12 +1,12 @@
 import numpy as np
 import cv2 as cv
 import imutils
-import libs.math_func as mf
+import math_func as mf
 import math
 from typing import Union, Optional, Tuple
 from tqdm import tqdm
 import time
-from precence_map_module import generate_precence_map # migth not detect but runs fine
+from precence_map_module import generate_precence_map 
 
 def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640, 480), inverted: bool = False, res: tuple[int, int] = (1080, 720)) -> Tuple[cv.typing.MatLike, cv.typing.MatLike]:
     """crops in to just the main page"""
@@ -123,7 +123,7 @@ def detect_drawing(det_img: cv.typing.MatLike | Tuple[cv.typing.MatLike, cv.typi
 
 # test section
 if __name__ == "__main__":
-    filename = "machine vision/20240802_080510.jpg"
+    filename = "machine_vision/20240802_080510.jpg"
     img = cv.imread(filename)
     result = detect_drawing_page(img, res= (1080, 720))
     precence = detect_drawing(result[1])[1]

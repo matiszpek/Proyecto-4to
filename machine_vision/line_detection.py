@@ -1,12 +1,12 @@
 import cv2 as cv
 import numpy as np
 import math
-import libs.math_func as mf
+import math_func as mf
 import image_crop as ic
 from tqdm import tqdm
 
 # image processing
-filename = "machine vision/20240802_080510.jpg"
+filename = "machine_vision/20240802_080510.jpg"
 
 img_ = cv.imread(filename)
 result = ic.detect_drawing_page(img_, res= (1080*2, 720*2))
@@ -60,6 +60,7 @@ img_complexity = cv.resize(img_complexity, img.shape[:2][::-1])
 
 lines_ = mf.tidy_lines(lines_, mask, 5, 1.2, math.pi/30)
 deleted = 0
+
 for line in tqdm(lines_):
     mf.draw_line(new_img, line, "", (int(abs(line.normal)), 255, 255))
     
