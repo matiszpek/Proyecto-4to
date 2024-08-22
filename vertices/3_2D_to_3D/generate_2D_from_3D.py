@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import json
 import random as r
 
-file_name = 'cylinder.stl'
+file_name = 'cube.stl'
 random_scale = 0.025
 
 _m = mesh.Mesh.from_file('vertices/3_2D_to_3D/' + file_name)
@@ -19,8 +19,8 @@ if input('Do you want to add noise? [y/n] ') != 'y':
     random_scale = 0
 
 x_points = list(set(list(zip([float(row[0] + r.random()*random_scale) for row in _m.x], [float(row[0] + r.random()*random_scale) for row in _m.y]))))
-y_points = list(set(list(zip([float(row[0] + r.random()*random_scale) for row in _m.y], [float(row[0] + r.random()*random_scale) for row in _m.z]))))
-z_points = list(set(list(zip([float(row[0] + r.random()*random_scale) for row in _m.z], [float(row[0] + r.random()*random_scale) for row in _m.x]))))
+y_points = list(set(list(zip([float(row[1] + r.random()*random_scale) for row in _m.y], [float(row[1] + r.random()*random_scale) for row in _m.z]))))
+z_points = list(set(list(zip([float(row[2] + r.random()*random_scale) for row in _m.z], [float(row[2] + r.random()*random_scale) for row in _m.x]))))
 
 obj_ax.scatter3D(_m.x.flatten(), _m.y.flatten(), _m.z.flatten())
 
