@@ -130,6 +130,14 @@ class Line:
         self.start = (self.start[0] + math.cos(self.normal)*ext1, self.start[1] + math.sin(self.normal)*ext1)
         self.end = (self.end[0] + math.cos(self.normal)*ext2, self.end[1] + math.sin(self.normal)*ext2)
         self.update_values
+    
+    def rotate(self, angle: float, center: tuple[int, int] = None):
+        """Rotate the line around a center point by a given angle."""
+        if center is None:
+            center = self.midpoint
+        self.start = rotate_point(self.start, angle, center)
+        self.end = rotate_point(self.end, angle, center)
+        self.update_values()
 
 def distance_between_lines(line1: Line, line2: Line) -> float:
     """returns distance between two lines"""
@@ -459,9 +467,10 @@ def scan_line_pixels(line: Line, img: cv.typing.MatLike) -> list[int]:
     x, y = int(x1), int(y1)
     sx = -1 if x1 > x2 else 1
     sy = -1 if y1 > y2 else 1
+
     if dx > dy:
         err = dx / 2.0
-        while x != x2:
+        while x != x2 and -img.shape[0] < y < img.shape[0] and -img.shape[1] < x < img.shape[1]:
             pixels.append(img[y, x])
             err -= dy
             if err < 0:
@@ -470,7 +479,7 @@ def scan_line_pixels(line: Line, img: cv.typing.MatLike) -> list[int]:
             x += sx
     else:
         err = dy / 2.0
-        while y != y2:
+        while y != y2 and -img.shape[0] < y < img.shape[0] and -img.shape[1] < x < img.shape[1]:
             pixels.append(img[y, x])
             err -= dx
             if err < 0:
@@ -558,7 +567,7 @@ def check_lines_same(line1: Line, line2: Line, thk: float, ext: float, ang_thr: 
 def check_lines_same_list(lines: list[Line], thk: float, ext: float, ang_thr: float) -> list[list[int]]:
     """returns a graph with all nodes considered same connected"""
     same = []
-    for i, line1 in enumerate(lines):
+    for i, line1 in tqdm(enumerate(lines)):
         line_same = []
         for j, line2 in enumerate(lines):
             if i == j:
@@ -570,14 +579,18 @@ def check_lines_same_list(lines: list[Line], thk: float, ext: float, ang_thr: fl
 
 def get_grouped_lines(lines: list[Line], thk: float, ext: float, ang_thr: float) -> list[list[Line]]:
     same = check_lines_same_list(lines, thk, ext, ang_thr)
+    print(same)
     _lines = []
     groups = connected_components(same)
+    print(groups)
     for i in groups:
         l = []
         for j in i:
             l.append(lines[j])
-        _lines.append(l)
+        if len(i) > 1:
+            _lines.append(l)
 
+    print(_lines)
     return _lines
 
 def gen_line_points_from_equation(m: float, origin: tuple[int, int], leng: float) -> tuple[tuple[float, float], tuple[float, float]]:
@@ -606,18 +619,49 @@ def reduce_line_group(lines: list[Line], img: cv.typing.MatLike) -> Line:
     line = Line(p1, p2)
 
     max_length = max(list(map(lambda x: x.len, lines)))
+    lens = []
+    og_line = line
+    for i in tqdm(range(180)):
+        line.rotate(PI/180)
+        done = False
+        front = False
+        while not done:
+            if front:
+                line.extend(1, 0)
+            else:
+                line.extend(0, 1)
+            pix = scan_line_pixels(line, img)
+            if np.mean(pix) < 20 or line.len > max_length:
+                done = True
+            front = not front
+        lens.append(line.len)
+        line = og_line
+    
+    og_line.rotate((PI/180)*np.argmax(lens) - PI/180)
+    op_ang = og_line.normal 
+    line = og_line
+    lens = []
 
-    done = False
-    front = False
-    while not done:
-        if front:
-            line.extend(1, 0)
-        else:
-            line.extend(0, 1)
-        pix = scan_line_pixels(line, img)
-        if np.mean(pix) < 120 or line.len > max_length:
-            done = True
-        front = not front
+    for i in tqdm(range(200)):
+        line.rotate(PI/18000)
+        done = False
+        front = False
+        while not done:
+            if front:
+                line.extend(1, 0)
+            else:
+                line.extend(0, 1)
+            pix = scan_line_pixels(line, img)
+            if np.mean(pix) < 20 or line.len > max_length:
+                done = True
+            front = not front
+        lens.append(line.len)
+        line = og_line
+    
+    og_line.rotate((PI/18000)*np.argmax(lens))
+    op_ang = og_line.normal 
+    line = og_line
+
     return line
 
 def reduce_lines_grouped(lines: list[list[Line]], img: cv.typing.MatLike) -> list[Line]:
