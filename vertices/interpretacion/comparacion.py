@@ -1,22 +1,23 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-import networkx as nx
+from typing import List
+from typing import Tuple
 import numpy as np
-from stl import mesh
+import stl as mesh
 import os
-from typing import List, Tuple
 
 
-ladoxy=[[0,0],[0,1],[0,0.5]]
-ladoxz=[[0,0],[0,1],[0,0.5]]
-ladoyz=[[0,0],[0,1],[1,0],[1,1][0.0,5]]
+#ejemplo priamide
+ladoxy=[[0,0],[1,0],[1,1],[0,1]] #nodos 1,2,3,4
+ladoxz=[[0,0],[1,0],[1,1],[0,1]] #nodos 5,6,7,8
+ladoyz=[[0,0],[1,0],[1,1],[0,1]] #nodos 9,10,11,12
 
 grafo=[]
 #conecciones=[[1,2],[2,3],[3,4],[4,1],[1,3],[2,4],[1,5],[2,6],[3,7],[4,8],[5,6],[6,7],[7,8],[8,5],[5,7],[6,8]]
 
 #conecciones gpt
 
-"""
+""".\
 conecciones = [
     [1, 2], [2, 4], [4, 3], [3, 1],  # Conexiones base inferior
     [5, 6], [6, 8], [8, 7], [7, 5],  # Conexiones base superior
@@ -24,55 +25,37 @@ conecciones = [
     [1, 3], [2, 4], [5, 7], [6, 8]   # Conexiones diagonales para formar triángulos
 ] 
 """
+
 conecciones: List[List[int]] = [
-    [1,2], 
-    [0,2], 
-    [0,1], 
-    [], 
-    [0, 5, 6], 
-    [4, 7, 1], 
-    [2, 4, 7], 
-    [3, 6, 5]
+    [1, 2], [2, 4], [4, 3], [3, 1],  # Conexiones base inferior
+    [5, 6], [6, 8], [8, 7], [7, 5],  # Conexiones base superior
+    [1, 5], [2, 6], [3, 7], [4, 8],  # Conexiones verticales
+    [1, 3], [2, 4], [5, 7], [6, 8]   # Conexiones diagonales para formar triángulos
     ]
 
+#conecciones del grafo global
+conecglobal: List[List[int]] = [
+]
 
-for nodo in ladoxy:
-    for nodo2 in ladoxz:
+#unir los nodos de los lados
+#nombrar los nodos globales
+for i, nodo in enumerate(ladoxy):
+    for j, nodo2 in enumerate(ladoxz):
         if nodo2[0]==nodo[0]:
             nodoaux=[nodo[0],nodo[1],nodo2[1]]
             if nodoaux not in grafo:
-                grafo.append(nodoaux+con)
+                grafo.append(nodoaux) # agregar el nodo a la lista de nodos
+                conecglobal.append(conecciones[i]+conecciones[j]) # agregar conecciones de vistas a conecciones global
 
-    for nodo3 in ladoyz:
+    for k, nodo3 in enumerate(ladoyz):
         if nodo3[0]==nodo[1]:
             nodoaux=[nodo[0],nodo[1],nodo3[1]]
             if nodoaux not in grafo:
-                grafo.append(nodoaux)
+                conecglobal.append(conecciones[i]+conecciones[k]) # agregar conecciones de vistas a conecciones global
+                grafo.append(nodoaux)#agregar el nodo a la lista de nodos
 
-
-"""G = nx.Graph()
-G.add_edges_from(conecciones)
-"""
-
-""" triangles = []
-
-for edge in conecciones:
-    idx1 = edge[0] - 1 
-    idx2 = edge[1] - 1
-    point1 = grafo[idx1]
-    point2 = grafo[idx2]
-    
-    if point1[2] != point2[2]:  # Si z es diferente, usar esa diferencia para formar el triángulo
-        point3 = [point1[0], point2[1], point1[2]]
-    else:  # De lo contrario, usar la diferencia en x o y
-        point3 = [point1[0], point1[1], point2[2]] 
-
-    triangles.append([point1, point2, point3])
- """
-
-""" mesher = np.zeros(len(triangles), dtype=mesh.Mesh.dtype)
-for i, triangle in enumerate(triangles):
-    mesher['vectors'][i] = np.array(triangle) """
+print(grafo)
+print(conecglobal)
 
 
 """ grafo_stl = mesh.Mesh(mesher)
