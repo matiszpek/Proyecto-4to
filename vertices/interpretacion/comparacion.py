@@ -8,74 +8,72 @@ import os
 
 
 #ejemplo priamide
-ladoxy=[[0,0],[1,0],[1,1],[0,1]] #nodos 1,2,3,4
-ladoxz=[[0,0],[1,0],[1,1],[0,1]] #nodos 5,6,7,8
-ladoyz=[[0,0],[1,0],[1,1],[0,1]] #nodos 9,10,11,12
+lado_xy=[[0,0],[1,0],[1,1],[0,1]] #nodos 1,2,3,4
+lado_xz=[[0,0],[1,0],[1,1],[0,1]] #nodos 5,6,7,8
+lado_yz=[[0,0],[1,0],[1,1],[0,1]] #nodos 9,10,11,12
 
+conecciones_xy=[[1,3],[0,2],[1,3],[2,0]]
+conecciones_yz=[[1,3],[0,2],[1,3],[2,0]]
+conecciones_xz=[[1,3],[0,2],[1,3],[2,0]]
 grafo=[]
-#conecciones=[[1,2],[2,3],[3,4],[4,1],[1,3],[2,4],[1,5],[2,6],[3,7],[4,8],[5,6],[6,7],[7,8],[8,5],[5,7],[6,8]]
-
-#conecciones gpt
-
-""".\
-conecciones = [
-    [1, 2], [2, 4], [4, 3], [3, 1],  # Conexiones base inferior
-    [5, 6], [6, 8], [8, 7], [7, 5],  # Conexiones base superior
-    [1, 5], [2, 6], [3, 7], [4, 8],  # Conexiones verticales
-    [1, 3], [2, 4], [5, 7], [6, 8]   # Conexiones diagonales para formar triángulos
-] 
-"""
-
-conecciones: List[List[int]] = [
-    [1, 2], [2, 4], [4, 3], [3, 1],  # Conexiones base inferior
-    [5, 6], [6, 8], [8, 7], [7, 5],  # Conexiones base superior
-    [1, 5], [2, 6], [3, 7], [4, 8],  # Conexiones verticales
-    [1, 3], [2, 4], [5, 7], [6, 8]   # Conexiones diagonales para formar triángulos
-    ]
-
-#conecciones del grafo global
-conecglobal: List[List[int]] = [
-]
-
-#unir los nodos de los lados
-#nombrar los nodos globales
-for i, nodo in enumerate(ladoxy):
-    for j, nodo2 in enumerate(ladoxz):
+grafo_conexiones=[]
+padres = {}
+    
+for i, nodo in enumerate(lado_xy):
+    for j, nodo2 in enumerate(lado_xz):
         if nodo2[0]==nodo[0]:
-            nodoaux=[nodo[0],nodo[1],nodo2[1]]
-            if nodoaux not in grafo:
-                grafo.append(nodoaux) # agregar el nodo a la lista de nodos
-                conecglobal.append(conecciones[i]+conecciones[j]) # agregar conecciones de vistas a conecciones global
+            for k, nodo3 in enumerate(lado_yz):
+                if nodo3[1]==nodo[1] and nodo3[0]==nodo2[1]:
+                    nodoaux=[nodo[0],nodo[1],nodo2[1]]
+                    palabranodoaux=str(nodoaux)
+                    padres[palabranodoaux]=[i,j,k]
+                    if nodoaux not in grafo:
+                        grafo.append(nodoaux)
 
-    for k, nodo3 in enumerate(ladoyz):
-        if nodo3[0]==nodo[1]:
-            nodoaux=[nodo[0],nodo[1],nodo3[1]]
-            if nodoaux not in grafo:
-                conecglobal.append(conecciones[i]+conecciones[k]) # agregar conecciones de vistas a conecciones global
-                grafo.append(nodoaux)#agregar el nodo a la lista de nodos
-
-print(grafo)
-print(conecglobal)
-
-
-""" grafo_stl = mesh.Mesh(mesher)
-grafo_stl.save('grafo_unificado.stl') """
-
-
-#grafico
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
 
 for nodo in grafo:
-    x = nodo[0]
-    y = nodo[1]
-    z = nodo[2]
-    ax.scatter(x, y, z)
-
+    palabranodo=str(nodo)
+    aux =padres[palabranodo]
+    aux1=aux[0]
+    aux2=aux[1]
+    aux3=aux[2]
+    for nodo2 in grafo:
+        if nodo==nodo2:
+            continue
+        palabranodo2=str(nodo2)
+        Aaux =padres[palabranodo2]
+        Aaux1=Aaux[0]
+        Aaux2=Aaux[1]
+        Aaux3=Aaux[2]
+        si1=False
+        si2=False
+        si3=False
+        
+        if Aaux1 in conecciones_xy[aux1]:
+            si1=True
+        if Aaux2 in conecciones_xz[aux2]:
+            si2=True
+        if Aaux3 in conecciones_yz[aux3]:
+            si3=True
+        if (si1 and si2) or (si1 and si3) or (si2 and si3):
+            grafo_conexiones[nodo].append(nodo2)
+            grafo_conexiones[nodo2].append(nodo) 
+        
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+# Plot nodes
+for nodo in grafo:
+    ax.scatter(nodo[0], nodo[1], nodo[2], c='b', marker='o')
+# Plot connections
+for nodo, conexiones in grafo_conexiones.items():
+    for conexion in conexiones:
+        xs = [nodo[0], conexion[0]]
+        ys = [nodo[1], conexion[1]]
+        zs = [nodo[2], conexion[2]]
+        ax.plot(xs, ys, zs, c='r')
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('Z')
-
 plt.show()
 
 

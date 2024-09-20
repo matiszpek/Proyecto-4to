@@ -1,3 +1,12 @@
+p1=[[0,0],[1,0],[0,1][1,1]]
+p2=[[0,0],[1,0],[0,1][1,1]]
+p3=[[0,0],[1,0],[0,1][1,1]]
+
+con1=[[0,1],[1,2],[2,3]] 
+con2=[[0,1],[1,2],[2,3]]
+con3=[[0,1],[1,2],[2,3]]
+
+
 def unificar_nodos(puntos_vista1, puntos_vista2, puntos_vista3, conexiones_vista1, conexiones_vista2, conexiones_vista3):
     """
     Función para unificar nodos que corresponden al mismo punto en 3D, pero que tienen diferentes identificadores.
@@ -42,7 +51,9 @@ def unificar_nodos(puntos_vista1, puntos_vista2, puntos_vista3, conexiones_vista
     for (nodo1, nodo2) in conexiones_vista3:
         for key1, vertice1 in vertices_3d.items():
             if key1[2] == nodo1:  # Coincide en vista 3
-                for key2, vertice2 in vertices_3:
+                for key2, vertice2 in vertices_3d:
                     if key2[2] == nodo2:  # Verificar el segundo nodo
                         conexiones_3d.append([vertice1, vertice2])
     return puntos_3d, conexiones_3d
+
+print(unificar_nodos(p1,p2,p3,con1,con2,con3))
