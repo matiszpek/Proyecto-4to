@@ -1,5 +1,13 @@
 import numpy as np
 from stl import mesh
+import numpy as np
+from typing import List
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from typing import List, Tuple
+from typing import List, Tuple
+import numpy as np
+from stl import mesh
 import os
 import numpy as np
 from typing import List
@@ -10,13 +18,12 @@ from typing import List, Tuple
 from typing import List, Tuple
 
 
-
 lado_xy=[[0,0],[1,0],[1,1],[0,1]] 
 lado_yz=[[0,0],[1,0],[1,1],[0,1]]
 lado_xz=[[0,0],[1,0],[1,1],[0,1]] 
 
 conecciones_xy=[[1,3],[0,2],[1,3],[2,0]]
-conecciones_yz=[[1,3],[0],[3],[2,0]]
+conecciones_yz=[[1,3],[0,2],[1,3],[2,0]]
 conecciones_xz=[[1,3],[0,2],[1,3],[2,0]]
 grafo=[]
 padres = {}
@@ -31,9 +38,9 @@ for i, nodo in enumerate(lado_xy):
                     padres[palabranodoaux]=[i,j,k]
                     if nodoaux not in grafo:
                         grafo.append(nodoaux)
-                        
+
 b=0
-grafo_conexiones=[]
+grafo_conexiones=[[]for _ in grafo]
 for i, nodo in enumerate(grafo):
     palabranodo = str(nodo)
     aux = padres[palabranodo]
@@ -64,12 +71,13 @@ for i, nodo in enumerate(grafo):
         if (si1 and si2 and Aaux3==aux3) or (si1 and si3 and Aaux2 == aux2) or (si2 and si3 and Aaux1 == aux1)or (si1 and si2 and si3):
             b+=1
             #tenemos que agregar la coneccion de nodo a nodo2 en el grafo 3d
-            if i not in grafo_conexiones:
-                grafo_conexiones.append([])
+            
             grafo_conexiones[i].append(nodo2)
+            for cosa in grafo_conexiones:
+                print(cosa)
+            print("\n\n\n\n\n")
         
             
-print(b)
 
 
 megagrafo=[grafo,grafo_conexiones]
@@ -95,5 +103,6 @@ def plot_megagrafo(megagrafo: Tuple[List[List[int]], List[List[List[int]]]]):
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     plt.show()
+
 
 plot_megagrafo(megagrafo)
