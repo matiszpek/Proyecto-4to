@@ -65,10 +65,26 @@ def sacarIteraciones(caras):
 def figure():
     """input("Vertices:\n")""" 
     """input("\nConections:\n")"""
-    vertices: List[List[float]] = [[0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 1], [1, 0, 0], [1, 0, 1], [1, 1, 0], [1, 1, 1]]
+    # Definimos los vértices de un tetraedro.
+    # Definimos los vértices de un octaedro.
+    vertices: List[List[float]] = [
+        [1, 0, 0],   # Vértice 0
+        [-1, 0, 0],  # Vértice 1
+        [0, 1, 0],   # Vértice 2
+        [0, -1, 0],  # Vértice 3
+        [0, 0, 1],   # Vértice 4
+        [0, 0, -1]   # Vértice 5
+    ]
     
-    connections: List[List[int]] = [[1, 2], [5, 3], [0, 3, 6], [2, 7, 1], [0, 5, 6], [4, 7, 1], [2, 4, 7], [3, 6, 5]]
-
+    # Definimos las conexiones (aristas) entre los vértices del octaedro.
+    connections = [
+    [5, 2, 4, 3], # Vértice 0 se conecta con 5, 2, 4, 3
+    [5, 2, 3, 4], # Vértice 1 se conecta con 5, 2, 3, 4
+    [4, 1, 0, 5], # Vértice 2 se conecta con 4, 1, 0, 5
+    [4, 1, 0, 5], # Vértice 3 se conecta con 4, 1, 0, 5
+    [1, 2, 0, 3], # Vértice 4 se conecta con 1, 2, 0, 3
+    [1, 3, 0, 2]  # Vértice 5 se conecta con 1, 3, 0, 2
+]
     return connections, vertices
 
 
