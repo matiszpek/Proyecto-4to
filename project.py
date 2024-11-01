@@ -1,6 +1,10 @@
 from typing import List, Tuple
 import numpy as np # type: ignore
 from stl import mesh # type: ignore
+import os
+
+desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+output_file = os.path.join(desktop_path, "Output.stl")
 
 def create_3d_object(coordinates):
     # Create a numpy array from the coordinates
@@ -15,8 +19,6 @@ def create_3d_object(coordinates):
 def export_stl(mesh_object, filename):
     # Export the mesh object as an STL file
     mesh_object.save(filename)
-
-
 
 def crearCaras(objeto):
     con, ver = objeto
@@ -78,20 +80,42 @@ def figure():
     
     # Definimos las conexiones (aristas) entre los vértices del octaedro.
     connections = [
-    [5, 2, 4, 3], # Vértice 0 se conecta con 5, 2, 4, 3
-    [5, 2, 3, 4], # Vértice 1 se conecta con 5, 2, 3, 4
-    [4, 1, 0, 5], # Vértice 2 se conecta con 4, 1, 0, 5
-    [4, 1, 0, 5], # Vértice 3 se conecta con 4, 1, 0, 5
-    [1, 2, 0, 3], # Vértice 4 se conecta con 1, 2, 0, 3
-    [1, 3, 0, 2]  # Vértice 5 se conecta con 1, 3, 0, 2
+    [[0, 0, -1], [0, 1, 0], [0, 0, 1], [0, -1, 0]], # Vértice 0 se conecta con 5, 2, 4, 3
+    [[0, 0, -1], [0, 1, 0], [0, -1, 0], [0, 0, 1]], # Vértice 1 se conecta con 5, 2, 3, 4
+    [[0, 0, 1], [-1, 0, 0], [1, 0, 0], [0, 0, -1]], # Vértice 2 se conecta con 4, 1, 0, 5
+    [[0, 0, 1], [-1, 0, 0], [1, 0, 0], [0, 0, -1]], # Vértice 3 se conecta con 4, 1, 0, 5
+    [[-1, 0, 0], [0, 1, 0], [1, 0, 0], [0, -1, 0]], # Vértice 4 se conecta con 1, 2, 0, 3
+    [[-1, 0, 0], [0, -1, 0], [1, 0, 0], [0, 1, 0]]  # Vértice 5 se conecta con 1, 3, 0, 2
 ]
+    return connections, vertices
+
+def translate(figure):
+    connections, vertices= figure
+    for ver in range(len(vertices)):
+        k=-1
+        for i in connections:
+            k+=1
+            for j in range(len(i)):
+                if vertices[ver]==connections[k][j]:
+                    connections[k][j]=ver
     return connections, vertices
 
 
 if __name__=="__main__":
 
+    con,ver=translate(figure())
     ver= figure()[1]
-    object=llamarIndice(sacarIteraciones(crearCaras(figure())),ver)
+    
+    object=llamarIndice(sacarIteraciones(crearCaras(translate(figure()))),ver)
     object3D = create_3d_object(object)
-    export_stl(object3D,"C:\\Users\\48389918\\Desktop\\ Output.stl")
+    export_stl(object3D, output_file)
     print("Objeto creado")
+
+    print("\n")
+    for connection in con:
+        print(connection)
+
+    print("\n")
+
+    for vertices in ver:
+        print(vertices)
