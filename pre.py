@@ -10,7 +10,7 @@ import os
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 output_file = os.path.join(desktop_path, "Output.stl")
 output_file2 = os.path.join(desktop_path, "OutputFalso.stl")
-
+print(output_file)
 
 #Funcion que crea un objeto stl 3D
 def create_3d_object(coordinates):
