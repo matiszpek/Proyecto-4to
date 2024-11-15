@@ -127,9 +127,24 @@ class Line:
 
     def extend(self, ext1: float, ext2: float):
         """extend line in either direction by specified amount"""
-        self.start = (self.start[0] + math.cos(self.normal)*ext1, self.start[1] + math.sin(self.normal)*ext1)
-        self.end = (self.end[0] + math.cos(self.normal)*ext2, self.end[1] + math.sin(self.normal)*ext2)
+        self.start = (self.start[0] + math.sin(self.normal)*ext1, self.start[1] + math.cos(self.normal)*ext1)
+        self.end = (self.end[0] + math.sin(self.normal)*ext2, self.end[1] + math.cos(self.normal)*ext2)
         self.update_values
+        return self
+
+    def move_global(self, x: float, y: float):
+        """move line globally"""
+        self.start = (self.start[0] + x, self.start[1] + y)
+        self.end = (self.end[0] + x, self.end[1] + y)
+        self.update_values
+        return self
+    
+    def move_local(self, x: float, y: float):
+        """move line locally"""
+        self.start = (self.start[0] + x*math.sin(self.nomral_rad()), self.start[1] + y*math.cos(self.nomral_rad()))
+        self.end = (self.end[0] + x*math.cos(self.nomral_rad()), self.end[1] + y*math.sin(self.nomral_rad()))
+        self.update_values
+        return self
 
 def distance_between_lines(line1: Line, line2: Line) -> float:
     """returns distance between two lines"""
@@ -589,6 +604,35 @@ def gen_line_points_from_equation(m: float, origin: tuple[int, int], leng: float
 
     return (x1, y1), (x2, y2)
 
+def check_line_correspondance(line: Line, img: cv.typing.MatLike, ext: int, thr: float) -> bool:
+    """checks if line is a valid line"""
+    center = line.midpoint
+    normal = line.nomral_rad()
+    p1 = (center[0] + math.cos(normal)*ext, center[1] + math.sin(normal)*ext)
+    p2 = (center[0] - math.cos(normal)*ext, center[1] - math.sin(normal)*ext)
+    _line = Line(p1, p2)
+    val = np.mean(scan_line_pixels(_line, img))
+    return val < thr
+
+def center_line(line: Line, img: cv.typing.MatLike, ext: int) -> Line:
+    for i in range(ext):
+        center = line.midpoint
+        normal = line.nomral_rad()
+        p1 = (center[0] + math.cos(normal)*ext, center[1] + math.sin(normal)*ext)
+        p2 = (center[0] - math.cos(normal)*ext, center[1] - math.sin(normal)*ext)
+        line1 = Line(center, p2)
+        line2 = Line(center, p1)
+        val1 = np.mean(scan_line_pixels(line1, img))
+        val2 = np.mean(scan_line_pixels(line2, img))
+        # print(val1 - val2)
+        if val1 - val2 > 20:
+            line.move_local(0, 1)
+        elif val1 - val2 < -20:
+            line.move_local(0, -1)
+        else:
+            break
+    return line
+
 def reduce_line_group(lines: list[Line], img: cv.typing.MatLike) -> Line:
     normals = []
     centerx = []
@@ -602,8 +646,12 @@ def reduce_line_group(lines: list[Line], img: cv.typing.MatLike) -> Line:
     origin = np.mean(centers, axis=1)
     m = np.mean(normals)
 
-    p1, p2 = gen_line_points_from_equation(m, origin, 1)
+    p1, p2 = gen_line_points_from_equation(m, origin, 5)
     line = Line(p1, p2)
+    if not check_line_correspondance(line, img, 10, 20):
+        # return None
+        pass
+    # line = center_line(line, img, 10)
 
     max_length = max(list(map(lambda x: x.len, lines)))
 
@@ -615,22 +663,28 @@ def reduce_line_group(lines: list[Line], img: cv.typing.MatLike) -> Line:
         else:
             line.extend(0, 1)
         pix = scan_line_pixels(line, img)
-        if np.mean(pix) < 120 or line.len > max_length:
+       
+        # print(np.mean(pix))
+        if np.mean(pix) < 20: #or line.len > max_length:
             done = True
+            # print("finished")
+            
         front = not front
     return line
 
 def reduce_lines_grouped(lines: list[list[Line]], img: cv.typing.MatLike) -> list[Line]:
     reduced = []
     for group in tqdm(lines):
-        reduced.append(reduce_line_group(group, img))
+        new_line = reduce_line_group(group, img)
+        if new_line is not None:
+            reduced.append(new_line)
     return reduced 
 
 def tidy_lines(lines: list[Line], img: cv.typing.MatLike, thk: float, ext: float, ang_thr: float) -> list[Line]:
     """
     makes messy lines not messy :) jk, it groups up similar lines into single line objects.
 
-    :param lines: List of lines to get tidyed
+    :param lines: List of lines
     :param img: Procesing image for line simplification
     :param thk: Width of similarity detection bounding box
     :param ext: Proportional extension of the bounding box for line similarity
