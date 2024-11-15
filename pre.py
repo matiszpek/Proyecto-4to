@@ -9,6 +9,8 @@ import os
 #Conseguimos la ruta del escritorio
 desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
 output_file = os.path.join(desktop_path, "Output.stl")
+output_file2 = os.path.join(desktop_path, "OutputFalso.stl")
+
 
 #Funcion que crea un objeto stl 3D
 def create_3d_object(coordinates):
@@ -168,8 +170,7 @@ if __name__=="__main__":
         
         object=llamarIndice(sacarIteraciones(crearCaras((coneciones, vertices))),vertices) #Crear las caras del objeto
         object3D = create_3d_object(object) #Crear el objeto 3D
-        #export_stl(object3D, output_file) #Exportar el objeto
-        export_stl(object3D, "Output.stl")
+        export_stl(object3D, output_file) #Exportar el objeto
         
         print("Objeto creado")
         
@@ -178,7 +179,10 @@ if __name__=="__main__":
 
         object=llamarIndice(sacarIteraciones(crearCaras2((coneciones, vertices))),vertices) #Crear las caras del objeto
         object3D = create_3d_object(object) #Crear el objeto 3D
-        #export_stl(object3D, output_file) #Exportar el objeto
-        export_stl(object3D, "Output.stl")
+        export_stl(object3D, output_file) #Exportar el objeto
+
+        object2=llamarIndice(sacarIteraciones(crearCaras((coneciones, vertices))),vertices) #Crear las caras del objeto
+        object3D2 = create_3d_object(object) #Crear el objeto 3D
+        export_stl(object3D, output_file2) #Exportar el objeto
 
         print("Objeto creado")

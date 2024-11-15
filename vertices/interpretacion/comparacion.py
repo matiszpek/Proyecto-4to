@@ -1,21 +1,10 @@
-import numpy as np
 from stl import mesh
 import numpy as np
-from typing import List
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from typing import List, Tuple
-from typing import List, Tuple
-import numpy as np
-from stl import mesh
 import os
-import numpy as np
-from typing import List
-import copy  
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from typing import List, Tuple
-from typing import List, Tuple
+import copy
 
 
 lado_xy=[[0,0],[1,0],[1,1],[0,1]] 
