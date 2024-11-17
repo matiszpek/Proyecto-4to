@@ -146,6 +146,99 @@ class Line:
         self.update_values
         return self
 
+def check_lines_paralel(line1: Line, line2: Line, angle_thr: float = 0) -> bool:
+    """checks if two lines are paralel"""
+    return abs(line1.normal - line2.normal) <= angle_thr
+
+def perpendicular_line_through_point(line: Line, point: Tuple[int, int]) -> Line:
+    """
+    Create a new line that is perpendicular to the given line and passes through the given point.
+    
+    Args:
+        line (Line): The original line.
+        point (Tuple[int, int]): The point through which the perpendicular line should pass.
+        
+    Returns:
+        Line: The new perpendicular line.
+    """
+    slope, _ = line.slope_and_intercept()
+    
+    # Calculate the slope of the perpendicular line
+    if slope == 0:  # Vertical line
+        perp_slope = float('inf')  # Represent a vertical line as infinite slope
+    elif slope == float('inf'):  # Horizontal line
+        perp_slope = 0
+    else:
+        perp_slope = -1 / slope
+    
+    # Define the direction of the perpendicular line
+    if perp_slope == float('inf'):
+        # Vertical line through the point
+        new_start = (point[0], point[1] - 10)
+        new_end = (point[0], point[1] + 10)
+    elif perp_slope == 0:
+        # Horizontal line through the point
+        new_start = (point[0] - 10, point[1])
+        new_end = (point[0] + 10, point[1])
+    else:
+        # General case
+        dx = 10
+        dy = perp_slope * dx
+        new_start = (int(point[0] - dx), int(point[1] - dy))
+        new_end = (int(point[0] + dx), int(point[1] + dy))
+    
+    # Create and return the new Line
+    return Line(new_start, new_end)
+
+def check_point_between_para_lines(point: Tuple[int, int], line1: Line, line2: Line) -> bool:
+    """Check if a point is between two parallel lines."""
+    if line1.normal != line2.normal:
+        raise ValueError("Lines must be parallel.")
+    
+    # Check if the point is between the two lines
+    return abs(distance_between_points(point, line1.midpoint) - distance_between_points(point, line2.midpoint)) < line1.len / 2
+
+def perp_distance_point_to_line(point: Tuple[int, int], line: Line) -> float:
+    """returns paralel distance between point and line"""
+    perp = perpendicular_line_through_point(line, point)
+    p_i = line_intersect(perp, line, (True, True))
+    return distance_between_points(point, p_i)
+
+def minimum_distance_between_lines(line1: Line, line2: Line) -> float:
+    """returns minimum distance between two lines(segments)"""
+    if line_intersect(line1, line2) is not None:
+        return 0
+    if check_lines_paralel(line1, line2):
+        return distance_between_points(line1.start, line2.start)
+    else:
+        perp_points = []
+        lines = [line1, line2]
+        for n in range(2):
+            i = lines[n]
+            par1 = perpendicular_line_through_point(i, i.start)
+            par2 = perpendicular_line_through_point(i, i.end)
+            p1 = lines[(n+1)%2].start
+            p2 = lines[(n+1)%2].end
+            if check_point_between_para_lines(p1, par1, par2):
+                perp_points.append(p1)
+            else:
+                perp_points.append(None)
+            if check_point_between_para_lines(p2, par1, par2):
+                perp_points.append(p2)
+            else:
+                perp_points.append(None)
+        dst = []
+        for n, p in enumerate(perp_points):
+            if p is not None:
+                dst.append(perp_distance_point_to_line(p, lines[n%2]))
+        if dst.__len__() != 0:
+            return min(dst)
+        else:
+            return min(distance_between_points(line1.start, line2.start), 
+                       distance_between_points(line1.start, line2.end), 
+                       distance_between_points(line1.end, line2.start), 
+                       distance_between_points(line1.end, line2.end))
+                
 def distance_between_lines(line1: Line, line2: Line) -> float:
     """returns distance between two lines"""
     return distance_between_points(line1.midpoint, line2.midpoint)
@@ -544,24 +637,6 @@ def create_line_bbox(line: Line, thickness: int, extension_rate: float) -> np.nd
     
     return np.array([top_left, top_right, bottom_right, bottom_left], dtype=np.int32)
 
-def connected_components(graph: list[list[int]]) -> list[list[int]]:
-    def dfs(node, visited, component):
-        visited.add(node)
-        component.append(node)
-        for neighbor in graph[node]:
-            if neighbor not in visited:
-                dfs(neighbor, visited, component)
-    
-    visited = set()
-    components = []
-    
-    for node in range(len(graph)):
-        if node not in visited:
-            component = []
-            dfs(node, visited, component)
-            components.append(component)
-    
-    return components
 
 def check_lines_same(line1: Line, line2: Line, thk: float, ext: float, ang_thr: float) -> bool:
     if abs(line1.normal - line2.normal) > ang_thr:
@@ -582,6 +657,26 @@ def check_lines_same_list(lines: list[Line], thk: float, ext: float, ang_thr: fl
                 line_same.append(j)
         same.append(line_same)
     return same
+
+
+def connected_components(graph: list[list[int]]) -> list[list[int]]:
+    def dfs(node, visited, component):
+        visited.add(node)
+        component.append(node)
+        for neighbor in graph[node]:
+            if neighbor not in visited:
+                dfs(neighbor, visited, component)
+    
+    visited = set()
+    components = []
+    
+    for node in range(len(graph)):
+        if node not in visited:
+            component = []
+            dfs(node, visited, component)
+            components.append(component)
+    
+    return components
 
 def get_grouped_lines(lines: list[Line], thk: float, ext: float, ang_thr: float) -> list[list[Line]]:
     same = check_lines_same_list(lines, thk, ext, ang_thr)
@@ -694,3 +789,6 @@ def tidy_lines(lines: list[Line], img: cv.typing.MatLike, thk: float, ext: float
 
     g_lines = get_grouped_lines(lines, thk, ext, ang_thr)
     return reduce_lines_grouped(g_lines, img)
+
+
+

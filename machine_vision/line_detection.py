@@ -61,8 +61,10 @@ new_img = np.zeros((mask.shape[0], mask.shape[1],3), dtype=np.uint8)
 img_complexity = mf.get_img_complexity(gray)
 img_complexity = cv.resize(img_complexity, img.shape[:2][::-1])
 
+i = 0
 for line in tqdm(lines_):
-    mf.draw_line(new_img, line, "", (int(abs(line.normal)), 255, 255))
+    i = i + 1
+    mf.draw_line(new_img, line, "", (255/int(len(lines_))*i, 255, 100))
         
 img_complexity = cv.cvtColor(img_complexity, cv.COLOR_GRAY2BGR)
 img_complexity[:,:,0] = 0  
