@@ -5,16 +5,15 @@ import math_func as mf
 import math
 from typing import Union, Optional, Tuple
 from tqdm import tqdm
-import time
-# from precence_map_module import generate_precence_map 
 
 def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640, 480), inverted: bool = False, res: tuple[int, int] = (1080, 720)) -> Tuple[cv.typing.MatLike, cv.typing.MatLike]:
     """crops in to just the main page"""
     _img = cv.resize(img, pros_res)
     gray = cv.cvtColor(_img,cv.COLOR_BGR2GRAY)
     gray = cv.convertScaleAbs(gray, None, 1.2, -10)
-    gray = cv.GaussianBlur(gray, (9, 9), 0)
+    gray = cv.GaussianBlur(gray, (11, 11), 1)
     gray = cv.Canny(gray, 150, 200, apertureSize=5, L2gradient=True)
+    gray = cv.floodFill(gray, None, (0, 0), 255)[1]
     lines = cv.HoughLinesP(gray, 1, np.pi/90, 100, minLineLength=60, maxLineGap=100)
     lines_ = [] 
 
@@ -27,11 +26,12 @@ def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640
         p1, p2, mp, type, ang = line.get()
         x1, y1 = p1
         x2, y2 = p2
-        cv.line(gray, (x1, y1), (x2, y2), 255, 1)
+        # cv.line(gray, (x1, y1), (x2, y2), 255, 1)
 
     cnts = cv.findContours(gray.copy(), cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
-    cnts = sorted(cnts, key = cv.contourArea, reverse = True)[:5]
+    cnts = sorted(cnts, key = cv.contourArea, reverse = True)[1:5]
+
     posible_screenCnt = []
     for c in cnts:
         peri = cv.arcLength(c, True)
@@ -40,18 +40,22 @@ def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640
         if len(approx) == 4:
             posible_screenCnt.append(approx)
             screenCnt = approx
+            cv.drawContours(_img, [screenCnt], -1, (0, 255, 0), 2)
+    
+    print(posible_screenCnt)
     if len(posible_screenCnt) == 0:
         return img
+    
     elif len(posible_screenCnt) > 1:
         avrg_ligth = []
         for screenCnt in posible_screenCnt:
-            avrg_ligth.append(mf.get_avrg_ligth(screenCnt, img))
+            avrg_ligth.append(mf.get_avrg_ligth(screenCnt, img, 20)*cv.contourArea(screenCnt))
 
         screenCnt = posible_screenCnt[avrg_ligth.index(max(avrg_ligth))]
 
-    pts1 = [(screenCnt[3][0][0], screenCnt[3][0][1]), 
-            (screenCnt[2][0][0], screenCnt[2][0][1]), 
-            (screenCnt[0][0][0], screenCnt[0][0][1]), 
+    pts1 = [(screenCnt[3][0][0], screenCnt[3][0][1]),
+            (screenCnt[0][0][0], screenCnt[0][0][1]),
+            (screenCnt[2][0][0], screenCnt[2][0][1]),
             (screenCnt[1][0][0], screenCnt[1][0][1])]
     pts2 = [[0, 0], [pros_res[0], 0], [0, pros_res[1]], [pros_res[0], pros_res[1]]]
     if inverted:
@@ -66,22 +70,20 @@ def detect_drawing_page(img: cv.typing.MatLike, pros_res: tuple[int, int] = (640
             mf.transform_cordinate_frame(pts1[3], res, pros_res)]
     _pts2 = [[0, 0], [res[0], 0], [0, res[1]], [res[0], res[1]]]
     if inverted:
-        pts2 = mf.shift_array(pts2, 0) # rotate
+        pts2 = mf.shift_array(pts2, 2) # rotate
     _matrix = cv.getPerspectiveTransform(np.float32(_pts1), np.float32(_pts2))
     b_result = cv.warpPerspective(__img, _matrix, res)
 
-
-
-    return b_result, p_result
+    return b_result, p_result, cnts
 
 def detect_drawing(det_img: cv.typing.MatLike | Tuple[cv.typing.MatLike, cv.typing.MatLike], cut_img: Optional[cv.typing.MatLike] = None) -> tuple[list[cv.typing.MatLike], cv.typing.MatLike]:
     """detects the drawings in the image, returns each drawing and the presence map"""
 
     if isinstance(det_img, tuple):
-        cut_img, det_img = det_img
+        cut_img, det_img, _ = det_img
 
     gray = cv.cvtColor(det_img.copy(), cv.COLOR_BGR2GRAY)
-    _img = cv.convertScaleAbs(gray, None, 1.6, -50)
+    _img = cv.convertScaleAbs(gray, None, 1.5, -40)
     blured = cv.GaussianBlur(_img, (9, 9), 0) 
     _img = cv.adaptiveThreshold(blured, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 15, 2)
     _img = cv.GaussianBlur(_img, (25, 25), 4) 
@@ -107,7 +109,6 @@ def detect_drawing(det_img: cv.typing.MatLike | Tuple[cv.typing.MatLike, cv.typi
     new_imgs = []
 
     #draw contours
-    start_time = time.time_ns
     for i, c in enumerate(contours):
         peri = cv.arcLength(c, True)
         approx = cv.approxPolyDP(c, 0.02 * peri, True)
@@ -124,9 +125,15 @@ def detect_drawing(det_img: cv.typing.MatLike | Tuple[cv.typing.MatLike, cv.typi
 
 # test section
 if __name__ == "__main__":
-    filename = "machine_vision/20240802_080510.jpg"
+    filename = "machine_vision/prueba_cubo.jpg"
     img = cv.imread(filename)
-    result = detect_drawing_page(img, res= (1080, 720))
+    #rotate img
+    # img = imutils.rotate_bound(img, -90)
+    # img = cv.resize(img, (680, 420))
+    result = detect_drawing_page(img, (1080, 720), res= (1080, 720))
+    img = cv.resize(img, (1080, 720))
+    cv.drawContours(img, result[2], -1, (0, 255, 0), 5)
+    cv.imshow('img', img)
     precence = detect_drawing(result[1])[1]
     results = detect_drawing(result[1], result[0])[0]
 

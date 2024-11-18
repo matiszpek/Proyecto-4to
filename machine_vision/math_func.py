@@ -4,6 +4,7 @@ import cv2 as cv
 from typing import Union, Optional, Tuple
 import math
 from tqdm import tqdm
+import random
 
 # Point functions
 def distance_between_points(p1: tuple[int, int], p2: tuple[int, int]) -> float:
@@ -489,12 +490,31 @@ def get_lines(can):
         minLineLength=5,
         maxLineGap=10
     )
-        
-def get_avrg_ligth(contour: list, img: cv.typing.MatLike) -> float:
+
+def scale_contour(contour: np.ndarray, scale: float) -> np.ndarray:
+    moments = cv.moments(contour)
+    if moments["m00"] == 0:
+        return contour
+    cx = int(moments["m10"] / moments["m00"])
+    cy = int(moments["m01"] / moments["m00"])
+    scaled_contour = []
+    for point in contour:
+        x, y = point[0]
+        x_scaled = cx + scale * (x - cx)
+        y_scaled = cy + scale * (y - cy)
+        scaled_contour.append([[int(x_scaled), int(y_scaled)]])
+    return np.array(scaled_contour, dtype=np.int32)
+
+def get_avrg_ligth(contour: list, img: cv.typing.MatLike, border: float = 50) -> float:
     mask = np.zeros(img.shape[:2], dtype=np.uint8)
     cv.drawContours(mask, [contour], 0, (255), -1)
 
     masked_image = cv.bitwise_and(img, img, mask=mask)
+    small_cnt = scale_contour(contour, 0.8)
+    mask = np.zeros(img.shape[:2], dtype=np.uint8)
+    cv.drawContours(mask, [small_cnt], 0, (200), int(border*(math.sqrt(cv.contourArea(contour)))))
+    print(int(border*(math.sqrt(cv.contourArea(contour))/750)))
+    masked_image = cv.bitwise_and(masked_image, masked_image, mask=mask)
 
     non_zero_pixels = masked_image[np.nonzero(masked_image)]
     if len(non_zero_pixels) > 0:
@@ -587,26 +607,26 @@ def scan_line_pixels(line: Line, img: cv.typing.MatLike) -> list[int]:
             y += sy
     return pixels
 
-def get_img_contrast(img: cv.typing.MatLike, ) -> cv.typing.MatLike:  
+def get_img_contrast(img: cv.typing.MatLike, range: float = 0.975, blur_s: int = 9, blur_i: int = 1) -> cv.typing.MatLike:  
     inv = 255 - img
-    blured = cv.GaussianBlur(inv, (9, 9), 1)
+    blured = cv.GaussianBlur(inv, (blur_s, blur_s), blur_i)
     inv_blured = 255 - blured
     img = cv.divide(img, inv_blured, scale=256)
-    mask = cv.inRange(img, 0, int(np.max(img)*0.975))
+    mask = cv.inRange(img, 0, int(np.max(img)*range))
     return mask
 
-def get_img_complexity(img: cv.typing.MatLike, ) -> cv.typing.MatLike:
+def get_img_complexity(img: cv.typing.MatLike, scaling: float = 0.5, floor: float = 0.9, blur: int = 9, rho: float = .25, theta: float = np.pi/360, thresh: int = 2, mLL: float = 10, mLG: float = 10) -> cv.typing.MatLike:
     
     mask = get_img_contrast(img)
-    lines = cv.HoughLinesP(mask, .25, np.pi/360, 2, minLineLength=10, maxLineGap=10)
+    lines = cv.HoughLinesP(mask, rho, theta, thresh, minLineLength=mLL, maxLineGap=mLG)
     lines_ = []
     if lines is not None:
         for line in lines:
             x1, y1, x2, y2 = line[0]
             lines_.append(Line((x1, y1), (x2, y2), math.atan2(y2 - y1, x2 - x1)))
-    img_complexity = get_line_presence(lines_, img, (img.shape[0]/2, img.shape[1]/2))
-    img_complexity = cv.GaussianBlur(img_complexity, (9, 9), 0)
-    img_complexity = cv.inRange(img_complexity, int(np.max(img_complexity)*0.9), 255)
+    img_complexity = get_line_presence(lines_, img, (img.shape[0]*scaling, img.shape[1]*scaling))
+    img_complexity = cv.GaussianBlur(img_complexity, (blur, blur), 0)
+    img_complexity = cv.inRange(img_complexity, int(np.max(img_complexity)*floor), 255)
     return img_complexity
 
 def create_line_bbox(line: Line, thickness: int, extension_rate: float) -> np.ndarray:
@@ -703,7 +723,43 @@ def group_lines(lines: list[Line], min_ngh: int, side_thr: float, ang_thr: float
                 edges.remove(edge)
     return cores, edges, noise
 
-
-
-    
-
+def join_line_group(lines: list[Line]) -> Line:
+    """joins a group of lines"""
+    if lines.__len__() == 1:
+        return lines[0]
+    else:
+        start_ = lines[0].start
+        end_ = lines[0].end
+        max_dist = 0
+        for line in lines:
+            start = line.start
+            for line_ in lines:
+                if line == line_: continue
+                end = line_.end
+                dist = distance_between_points(start, end)
+                if dist > max_dist:
+                    max_dist = dist
+                    start_ = start
+                    end_ = end
+                end = line_.start
+                dist = distance_between_points(start, end)
+                if dist > max_dist:
+                    max_dist = dist
+                    start_ = start
+                    end_ = end
+            start = line.end
+            for line_ in lines:
+                if line == line_: continue
+                end = line_.end
+                dist = distance_between_points(start, end)
+                if dist > max_dist:
+                    max_dist = dist
+                    start_ = start
+                    end_ = end
+                end = line_.start
+                dist = distance_between_points(start, end)
+                if dist > max_dist:
+                    max_dist = dist
+                    start_ = start
+                    end_ = end
+        return Line(start_, end_)
