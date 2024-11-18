@@ -4,6 +4,7 @@ import math
 import math_func as mf
 import image_crop as ic
 from tqdm import tqdm
+import random as rnd
 
 # image processing
 filename = "machine_vision/20240802_080510.jpg"
@@ -53,7 +54,7 @@ def get_lines():
 
 lines_ = get_lines()
 # lines_ = mf.tidy_lines(lines_, cv.dilate(mask, (5,5), iterations=1), 9, 1.2, math.pi/30)
-
+lines_, edges, noise = mf.group_lines(lines_, 4, 5, math.pi/10)
 
 # image vizualisation
 
@@ -62,9 +63,13 @@ img_complexity = mf.get_img_complexity(gray)
 img_complexity = cv.resize(img_complexity, img.shape[:2][::-1])
 
 i = 0
-for line in tqdm(lines_):
+for group in tqdm(lines_):
     i = i + 1
-    mf.draw_line(new_img, line, "", (255/int(len(lines_))*i, 255, 100))
+    if len(group) < 2:
+        continue
+    for line in group[1:]:    
+        mf.draw_line(new_img, line, "", (255/int(len(group))*i, 255, 100))
+    cv.putText(new_img, str(i), (group[1].start[0], group[1].start[1]), cv.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 2, cv.LINE_AA)
         
 img_complexity = cv.cvtColor(img_complexity, cv.COLOR_GRAY2BGR)
 img_complexity[:,:,0] = 0  

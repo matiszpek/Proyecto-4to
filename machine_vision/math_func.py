@@ -595,7 +595,6 @@ def get_img_contrast(img: cv.typing.MatLike, ) -> cv.typing.MatLike:
     mask = cv.inRange(img, 0, int(np.max(img)*0.975))
     return mask
 
-# image complexity
 def get_img_complexity(img: cv.typing.MatLike, ) -> cv.typing.MatLike:
     
     mask = get_img_contrast(img)
@@ -637,59 +636,6 @@ def create_line_bbox(line: Line, thickness: int, extension_rate: float) -> np.nd
     
     return np.array([top_left, top_right, bottom_right, bottom_left], dtype=np.int32)
 
-
-def check_lines_same(line1: Line, line2: Line, thk: float, ext: float, ang_thr: float) -> bool:
-    if abs(line1.normal - line2.normal) > ang_thr:
-        return False
-    
-    bbox = create_line_bbox(line1, thk, ext)
-    return cv.pointPolygonTest(bbox, (int(line2.start[0]), int(line2.start[1])), False) >= 0 and cv.pointPolygonTest(bbox, (int(line2.end[0]), int(line2.end[1])), False) >= 0
-    
-def check_lines_same_list(lines: list[Line], thk: float, ext: float, ang_thr: float) -> list[list[int]]:
-    """returns a graph with all nodes considered same connected"""
-    same = []
-    for i, line1 in enumerate(lines):
-        line_same = []
-        for j, line2 in enumerate(lines):
-            if i == j:
-                continue
-            if check_lines_same(line1, line2, thk, ext, ang_thr):
-                line_same.append(j)
-        same.append(line_same)
-    return same
-
-
-def connected_components(graph: list[list[int]]) -> list[list[int]]:
-    def dfs(node, visited, component):
-        visited.add(node)
-        component.append(node)
-        for neighbor in graph[node]:
-            if neighbor not in visited:
-                dfs(neighbor, visited, component)
-    
-    visited = set()
-    components = []
-    
-    for node in range(len(graph)):
-        if node not in visited:
-            component = []
-            dfs(node, visited, component)
-            components.append(component)
-    
-    return components
-
-def get_grouped_lines(lines: list[Line], thk: float, ext: float, ang_thr: float) -> list[list[Line]]:
-    same = check_lines_same_list(lines, thk, ext, ang_thr)
-    _lines = []
-    groups = connected_components(same)
-    for i in groups:
-        l = []
-        for j in i:
-            l.append(lines[j])
-        _lines.append(l)
-
-    return _lines
-
 def gen_line_points_from_equation(m: float, origin: tuple[int, int], leng: float) -> tuple[tuple[float, float], tuple[float, float]]:
     """returns the two points of a line with slope 'm' starting in the origin and extending a certain length"""
     angle = math.atan(m)
@@ -698,16 +644,6 @@ def gen_line_points_from_equation(m: float, origin: tuple[int, int], leng: float
     y2 = y1 + leng * math.sin(angle)
 
     return (x1, y1), (x2, y2)
-
-def check_line_correspondance(line: Line, img: cv.typing.MatLike, ext: int, thr: float) -> bool:
-    """checks if line is a valid line"""
-    center = line.midpoint
-    normal = line.nomral_rad()
-    p1 = (center[0] + math.cos(normal)*ext, center[1] + math.sin(normal)*ext)
-    p2 = (center[0] - math.cos(normal)*ext, center[1] - math.sin(normal)*ext)
-    _line = Line(p1, p2)
-    val = np.mean(scan_line_pixels(_line, img))
-    return val < thr
 
 def center_line(line: Line, img: cv.typing.MatLike, ext: int) -> Line:
     for i in range(ext):
@@ -728,67 +664,46 @@ def center_line(line: Line, img: cv.typing.MatLike, ext: int) -> Line:
             break
     return line
 
-def reduce_line_group(lines: list[Line], img: cv.typing.MatLike) -> Line:
-    normals = []
-    centerx = []
-    centery = []
-    for l in lines:
-        normals.append(l.slope_and_intercept()[0])
-        centerx.append(l.midpoint[0])
-        centery.append(l.midpoint[1])
-    
-    centers = np.array([centerx, centery])
-    origin = np.mean(centers, axis=1)
-    m = np.mean(normals)
+def check_line_correspondance(line: Line, img: cv.typing.MatLike, ext: int, thr: float) -> bool:
+    """checks if line is a valid line"""
+    center = line.midpoint
+    normal = line.nomral_rad()
+    p1 = (center[0] + math.cos(normal)*ext, center[1] + math.sin(normal)*ext)
+    p2 = (center[0] - math.cos(normal)*ext, center[1] - math.sin(normal)*ext)
+    _line = Line(p1, p2)
+    val = np.mean(scan_line_pixels(_line, img))
+    return val < thr
 
-    p1, p2 = gen_line_points_from_equation(m, origin, 5)
-    line = Line(p1, p2)
-    if not check_line_correspondance(line, img, 10, 20):
-        # return None
-        pass
-    # line = center_line(line, img, 10)
+def line_group_bounding_box(lines: list[Line]) -> list[Line]:
+    raise NotImplementedError
 
-    max_length = max(list(map(lambda x: x.len, lines)))
-
-    done = False
-    front = False
-    while not done:
-        if front:
-            line.extend(1, 0)
+def group_lines(lines: list[Line], min_ngh: int, side_thr: float, ang_thr: float) -> list[list[Line]]:
+    """groups lines by proximity and angle"""
+    connections = []
+    for n, line in enumerate(lines):
+        connections.append([n])
+        for line_ in lines:
+            if perp_distance_point_to_line(line_.midpoint, line) < side_thr and abs(line.normal - line_.normal) < ang_thr:
+                connections[-1].append(line_)
+    cores = []
+    edges = []
+    noise = []
+    for connection in connections:
+        if connection.__len__() > min_ngh:
+            cores.append(connection)
+        elif connection.__len__() > 0:
+            edges.append(connection)
         else:
-            line.extend(0, 1)
-        pix = scan_line_pixels(line, img)
-       
-        # print(np.mean(pix))
-        if np.mean(pix) < 20: #or line.len > max_length:
-            done = True
-            # print("finished")
-            
-        front = not front
-    return line
-
-def reduce_lines_grouped(lines: list[list[Line]], img: cv.typing.MatLike) -> list[Line]:
-    reduced = []
-    for group in tqdm(lines):
-        new_line = reduce_line_group(group, img)
-        if new_line is not None:
-            reduced.append(new_line)
-    return reduced 
-
-def tidy_lines(lines: list[Line], img: cv.typing.MatLike, thk: float, ext: float, ang_thr: float) -> list[Line]:
-    """
-    makes messy lines not messy :) jk, it groups up similar lines into single line objects.
-
-    :param lines: List of lines
-    :param img: Procesing image for line simplification
-    :param thk: Width of similarity detection bounding box
-    :param ext: Proportional extension of the bounding box for line similarity
-    :param ang_thr: Angle threshold diference between lines
-    :return: List of tidyed single lines (hopefully)
-    """
-
-    g_lines = get_grouped_lines(lines, thk, ext, ang_thr)
-    return reduce_lines_grouped(g_lines, img)
+            noise.append(connection)
+    # join cores
+    for core in cores:
+        for edge in edges:
+            if core[0] in edge:
+                core += edge
+                edges.remove(edge)
+    return cores, edges, noise
 
 
+
+    
 
