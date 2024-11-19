@@ -156,10 +156,8 @@ def convex(vertices: List[List[float]]):
     
     return all_points_on_hull
 
-
-if __name__=="__main__":
-
-    coneciones, vertices=translate(figure())
+def main(coneciones, vertices):
+    coneciones, vertices=translate(coneciones, vertices)
 
     if convex(vertices):#La figura es convexa
         print("La figura es convexa")
@@ -176,11 +174,14 @@ if __name__=="__main__":
 
         object=llamarIndice(sacarIteraciones(crearCaras2((coneciones, vertices))),vertices) #Crear las caras del objeto
         object3D = create_3d_object(object) #Crear el objeto 3D
-        #export_stl(object3D, output_file) #Exportar el objeto
-        export_stl(object3D, "output.stl") #Exportar el objeto|
+        export_stl(object3D, output_file) #Exportar el objeto
+        #export_stl(object3D, "output.stl") #Exportar el objeto|
 
         object2=llamarIndice(sacarIteraciones(crearCaras((coneciones, vertices))),vertices) #Crear las caras del objeto
-        #object3D2 = create_3d_object(object) #Crear el objeto 3D
-        export_stl(object3D, "outputfalso.stl") #Exportar el objeto|
+        object3D2 = create_3d_object(object) #Crear el objeto 3D
+        export_stl(object3D, output_file2) #Exportar el objeto|
 
         print("Objeto creado")
+
+if __name__=="__main__":
+    main(figure())
