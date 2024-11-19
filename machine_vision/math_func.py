@@ -4,6 +4,7 @@ import cv2 as cv
 from typing import Union, Optional, Tuple
 import math
 from tqdm import tqdm
+import itertools as it 
 import random
 
 # Point functions
@@ -369,7 +370,7 @@ def line_intersect(line1: Line, line2: Line, extend: Tuple[bool, bool] = (False,
 
         div = det(xdiff, ydiff)
         if div == 0:
-            raise Exception('lines do not intersect')
+            return None
 
         d = (det(line1.start, line1.end), det(line2.start, line2.end))
         x = det(d, xdiff) / div
@@ -763,3 +764,30 @@ def join_line_group(lines: list[Line]) -> Line:
                     start_ = start
                     end_ = end
         return Line(start_, end_)
+
+def reduce_p_to_int(p: tuple[float, float]) -> tuple[int, int]:
+    return (int(p[0]), int(p[1]))
+
+def get_vertices(lines: list[Line]) -> tuple[list[tuple[float,float]], list[list[int]]]:
+    vert_p = []
+    vert_c = []
+    for line in lines:
+        for _line in lines:
+            if line == _line:
+                continue
+            p = line_intersect(line, _line)
+            if p == None or distance_between_points(line.midpoint, p) > line.len*0.6 or distance_between_points(_line.midpoint, p) > _line.len*0.6:
+                continue
+            vert_p.append(reduce_p_to_int(p))
+            vert_c.append((line, _line))
+        lines.remove(line)
+    
+    vert_ = zip(vert_p, vert_c)
+    vert = []
+    
+    for v in vert_:
+        if v not in vert:
+            vert.append(v)
+
+    return vert
+

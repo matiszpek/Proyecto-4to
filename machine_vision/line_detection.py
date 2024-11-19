@@ -77,12 +77,20 @@ img_complexity = mf.get_img_complexity(gray,
 img_complexity = cv.resize(img_complexity, img.shape[:2][::-1])
 
 i = 0
+lines = []
 for group in tqdm(lines_):
     i += 1
-    line = mf.join_line_group(group[1:])   
+    line = mf.join_line_group(group[1:])
+    lines.append(line)   
     mf.draw_line(new_img, line, "", (255/int(len(lines_))*i, 255, 100))
     cv.putText(new_img, str(i), (group[1].start[0], group[1].start[1]), cv.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 2, cv.LINE_AA)
-        
+
+points, con = mf.get_vertices(lines) 
+print(points)
+for p in points:
+    cv.circle(new_img, (int(p[0]), int(p[1])), 5, (255, 255, 255))     
+
+
 
 img_complexity = cv.cvtColor(img_complexity, cv.COLOR_GRAY2BGR)
 img_complexity[:,:,0] = 0  
