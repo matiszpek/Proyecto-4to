@@ -90,30 +90,25 @@ def sacarIteraciones(caras):
 
 
 #Funcion que contiene los vertices y sus conecciones
-def figure():
-    """input("Vertices:\n")""" 
-    """input("\nConections:\n")"""
-    # Definimos los vértices de un tetraedro.
-    # Definimos los vértices de un octaedro.
-    vertices: List[List[float]] = [
-        
-        [0,0,0],
-        [-1,-1,0],
-        [-1,1,0],
-        [1,0,0],
-        [-1,0,1],
-    ]
-    
-    # Definimos las conexiones (aristas) entre los vértices del octaedro.
-    connections = [
-        
-        [[-1,-1,0],[-1,1,0],[-1,0,1]],
-        [[-1,1,0],[1,0,0],[-1,0,1]],
-        [[1,0,0],[-1,-1,0],[-1,0,1]],
-        [[-1,-1,0],[-1,1,0],[-1,0,1]],
-        [[-1,-1,0],[1,0,0],[-1,1,0]]
-]
-    return connections, vertices
+# vertices: List[List[float]] = [
+#     
+#     [0,0,0],
+#     [-1,-1,0],
+#     [-1,1,0],
+#     [1,0,0],
+#     [-1,0,1],
+# ]
+# 
+# # Definimos las conexiones (aristas) entre los vértices del octaedro.
+# connections = [
+#     
+#     [[-1,-1,0],[-1,1,0],[-1,0,1]],
+#     [[-1,1,0],[1,0,0],[-1,0,1]],
+#     [[1,0,0],[-1,-1,0],[-1,0,1]],
+#     [[-1,-1,0],[-1,1,0],[-1,0,1]],
+#     [[-1,-1,0],[1,0,0],[-1,1,0]]
+# ]
+# return connections, vertices
 
 
 #Traducir las conecciones en vertices a numeros
