@@ -97,25 +97,21 @@ def figure():
     # Definimos los vértices de un octaedro.
     vertices: List[List[float]] = [
         
-        [0,0,-1],
-        [1,-1,0],
-        [1,0,0],
         [0,0,0],
-        [0,1,0],
+        [-1,-1,0],
         [-1,1,0],
-        [-1,-1,0]
+        [1,0,0],
+        [-1,0,1],
     ]
     
     # Definimos las conexiones (aristas) entre los vértices del octaedro.
     connections = [
         
-        [[0,0,-1],[0,0,-1],[0,0,-1]],
-        [[-1,-1,0],[1,0,0],[0,0,1]],
-        [[1,-1,0],[0,0,0],[0,0,1]],
-        [[1,0,0],[0,1,0],[0,0,1]],
-        [[0,0,0],[-1,1,0],[0,0,1]],
-        [[0,1,0],[-1,-1,0],[0,0,1]],
-        [[1,-1,0],[-1,1,0],[0,0,1]],
+        [[-1,-1,0],[-1,1,0],[-1,0,1]],
+        [[-1,1,0],[1,0,0],[-1,0,1]],
+        [[1,0,0],[-1,-1,0],[-1,0,1]],
+        [[-1,-1,0],[-1,1,0],[-1,0,1]],
+        [[-1,-1,0],[1,0,0],[-1,1,0]]
 ]
     return connections, vertices
 
@@ -170,7 +166,8 @@ if __name__=="__main__":
         
         object=llamarIndice(sacarIteraciones(crearCaras((coneciones, vertices))),vertices) #Crear las caras del objeto
         object3D = create_3d_object(object) #Crear el objeto 3D
-        export_stl(object3D, output_file) #Exportar el objeto
+        #export_stl(object3D, output_file) #Exportar el objeto
+        export_stl(object3D, "output.stl") #Exportar el objeto|
         
         print("Objeto creado")
         
@@ -179,10 +176,11 @@ if __name__=="__main__":
 
         object=llamarIndice(sacarIteraciones(crearCaras2((coneciones, vertices))),vertices) #Crear las caras del objeto
         object3D = create_3d_object(object) #Crear el objeto 3D
-        export_stl(object3D, output_file) #Exportar el objeto
+        #export_stl(object3D, output_file) #Exportar el objeto
+        export_stl(object3D, "output.stl") #Exportar el objeto|
 
         object2=llamarIndice(sacarIteraciones(crearCaras((coneciones, vertices))),vertices) #Crear las caras del objeto
-        object3D2 = create_3d_object(object) #Crear el objeto 3D
-        export_stl(object3D, output_file2) #Exportar el objeto
+        #object3D2 = create_3d_object(object) #Crear el objeto 3D
+        export_stl(object3D, "outputfalso.stl") #Exportar el objeto|
 
         print("Objeto creado")
