@@ -701,13 +701,25 @@ def check_line_correspondance(line: Line, img: cv.typing.MatLike, ext: int, thr:
 def line_group_bounding_box(lines: list[Line]) -> list[Line]:
     raise NotImplementedError
 
-def check_lines_same(line1: Line, line2: Line, thr_d: float = 0.1, thr_a: float = 0.05) -> bool:
+def check_lines_same(line1: Line, line2: Line, thr_d: float = 0.1, thr_a: float = 0.05, thr_d2: float = 3) -> bool:
     """checks if two lines are the same"""
     if line1.start == line2.start and line1.end == line2.end:
         return True
     if line1.start == line2.end and line1.end == line2.start:
         return True
     if abs(line1.normal - line2.normal) < thr_a and minimum_distance_between_lines(line1, line2) < thr_d:
+        return True
+    if perp_distance_point_to_line(line1.start, line2) < thr_d2 and perp_distance_point_to_line(line1.end, line2) < thr_d2:
+        return True
+    if perp_distance_point_to_line(line1.midpoint, line2) < thr_d2 and perp_distance_point_to_line(line1.end, line2) < thr_d2:
+        return True
+    if perp_distance_point_to_line(line1.start, line2) < thr_d2 and perp_distance_point_to_line(line1.midpoint, line2) < thr_d2:
+        return True
+    if perp_distance_point_to_line(line2.start, line1) < thr_d2 and perp_distance_point_to_line(line2.end, line1) < thr_d2:
+        return True
+    if perp_distance_point_to_line(line2.midpoint, line1) < thr_d2 and perp_distance_point_to_line(line2.end, line1) < thr_d2:
+        return True
+    if perp_distance_point_to_line(line2.start, line1) < thr_d2 and perp_distance_point_to_line(line2.midpoint, line1) < thr_d2:
         return True
     return False
 
@@ -792,23 +804,26 @@ def reduce_p_to_int(p: tuple[float, float]) -> tuple[int, int]:
 def get_vertices(lines: list[Line]) -> tuple[list[tuple[float,float]], list[list[int]]]:
     vert_p = []
     vert_c = []
+    _lines = lines
     for line in lines:
-        for _line in lines:
+        for _line in _lines:
             if line == _line:
                 continue
-            p = line_intersect(line, _line)
+            p = line_intersect(line, _line, (True, True))
             if p == None or distance_between_points(line.midpoint, p) > line.len*0.6 or distance_between_points(_line.midpoint, p) > _line.len*0.6:
                 continue
             vert_p.append(reduce_p_to_int(p))
             vert_c.append((line, _line))
-        lines.remove(line)
+        print(vert_p)
     
     vert_ = zip(vert_p, vert_c)
     vert = []
-    
+    vert_p = []
     for v in vert_:
-        if v not in vert:
+        if v[0] not in vert_p:
             vert.append(v)
+            vert_p.append(v[0])
+    print(vert)
 
     return vert
 
