@@ -19,9 +19,9 @@ mask = cv.morphologyEx(or_mask, cv.MORPH_CLOSE, np.ones((3,3),np.uint8))
 # mask = cv.GaussianBlur(mask, (9,9), 3)
 # mask = cv.bilateralFilter(mask, 7, 90, 90)
 
-def get_lines():
-    lines = cv.HoughLinesP(mask, 2, np.pi/360, 80, minLineLength=40, maxLineGap=3)
-    lines = np.concatenate([cv.HoughLinesP(mask, 2, np.pi/180, 80, minLineLength=3, maxLineGap=1), lines])
+def get_lines(img: np.ndarray = mask) -> list:
+    lines = cv.HoughLinesP(img, 2, np.pi/360, 80, minLineLength=40, maxLineGap=3)
+    lines = np.concatenate([cv.HoughLinesP(img, 2, np.pi/180, 80, minLineLength=3, maxLineGap=1), lines])
 
     lines_ = []
 
@@ -58,8 +58,8 @@ def get_lines():
             lines_.append(mf.Line((x1, y1), (x2, y2), normal = angle))
     return lines_
 
-lines_ = get_lines()
-lines_, edges, noise = mf.group_lines(lines_, 2, 10, math.pi/10)
+lines_ = get_lines(mask)
+
 
 # image vizualisation
 
@@ -77,18 +77,29 @@ img_complexity = mf.get_img_complexity(gray,
 img_complexity = cv.resize(img_complexity, img.shape[:2][::-1])
 
 i = 0
-lines = []
-for group in tqdm(lines_):
-    i += 1
-    line = mf.join_line_group(group[1:])
-    lines.append(line)   
-    mf.draw_line(new_img, line, "", (255/int(len(lines_))*i, 255, 100))
-    cv.putText(new_img, str(i), (group[1].start[0], group[1].start[1]), cv.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 2, cv.LINE_AA)
+for n in range(1):
+    lines_, edges, noise = mf.group_lines(lines_, 3, 5, math.pi/30)
+    lines = []
+    for group in lines_:
+        line = mf.join_line_group(group[1:])
+        lines.append(line)
+    lines_ = lines   
+    print(len(lines_))
 
-points, con = mf.get_vertices(lines) 
-print(points)
+for line in lines_:
+    for line_ in lines_:
+        if line != line_:
+            if mf.check_lines_same(line, line_):
+                lines_.remove(line_)
+
+for i, line in enumerate(lines_):
+    mf.draw_line(new_img, line, "", (255/int(len(lines_))*i, 255, 100))
+    # cv.putText(new_img, str(i), (line.start[0], line.start[1]), cv.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 2, cv.LINE_AA)
+
+points = mf.get_vertices(lines) 
+# print(points)
 for p in points:
-    cv.circle(new_img, (int(p[0]), int(p[1])), 5, (255, 255, 255))     
+    cv.circle(new_img, p[0], 5, (255, 255, 255))     
 
 
 
@@ -99,7 +110,7 @@ img_complexity[:,:,1] = 0
 mask = cv.cvtColor(mask, cv.COLOR_GRAY2BGR)
 mask[:,:,1] = 0
 mask[:,:,0] = 0
-new_img = cv.addWeighted(new_img, 0.7, mask, 0.3, 0)
+# new_img = cv.addWeighted(new_img, 0.7, mask, 0.3, 0)
 
 # new_img = cv.morphologyEx(new_img, cv.MORPH_CLOSE, np.ones((2,2),np.uint8))
 

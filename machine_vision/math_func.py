@@ -148,6 +148,9 @@ class Line:
         self.update_values
         return self
 
+    def debug(self):
+        print(self.start, self.end, self.midpoint, self.normal)
+
 def check_lines_paralel(line1: Line, line2: Line, angle_thr: float = 0) -> bool:
     """checks if two lines are paralel"""
     return abs(line1.normal - line2.normal) <= angle_thr
@@ -698,6 +701,16 @@ def check_line_correspondance(line: Line, img: cv.typing.MatLike, ext: int, thr:
 def line_group_bounding_box(lines: list[Line]) -> list[Line]:
     raise NotImplementedError
 
+def check_lines_same(line1: Line, line2: Line, thr_d: float = 0.1, thr_a: float = 0.05) -> bool:
+    """checks if two lines are the same"""
+    if line1.start == line2.start and line1.end == line2.end:
+        return True
+    if line1.start == line2.end and line1.end == line2.start:
+        return True
+    if abs(line1.normal - line2.normal) < thr_a and minimum_distance_between_lines(line1, line2) < thr_d:
+        return True
+    return False
+
 def group_lines(lines: list[Line], min_ngh: int, side_thr: float, ang_thr: float) -> list[list[Line]]:
     """groups lines by proximity and angle"""
     connections = []
@@ -716,12 +729,20 @@ def group_lines(lines: list[Line], min_ngh: int, side_thr: float, ang_thr: float
             edges.append(connection)
         else:
             noise.append(connection)
-    # join cores
+    # join cores to edges
     for core in cores:
         for edge in edges:
             if core[0] in edge:
                 core += edge
                 edges.remove(edge)
+    # join cores to conected cores
+    for core in cores:
+        for core_ in cores:
+            if core[0] in core_:
+                core += core_
+                cores.remove(core_)
+            
+
     return cores, edges, noise
 
 def join_line_group(lines: list[Line]) -> Line:
